@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-
+import sys
 
 def calc_ch4_lifetime_fact(year):
     lifetime_fact = np.ones(year.size)
@@ -86,7 +86,7 @@ class SIMPLEH2:
         self.h2_antr.index.name = 'Year'
         self._calc_h2_gfed(self.h2_antr.copy()*0.0)
 
-    def _calc_h2_gfed(h2_gfed_temp, gfedfile =  '/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt'):
+    def _calc_h2_gfed(self, h2_gfed_temp, gfedfile = '/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt'):
         h2_gfed_org = pd.read_csv(gfedfile,index_col=0)
         h2_gfed_org.index.name = 'Year'
         h2_gfed_temp.index.name = 'Year'
@@ -97,7 +97,8 @@ class SIMPLEH2:
     def calculate_concentrations(self, const_oh=0):
         tot_prod = self.h2_antr.loc[1850:2014] + self.h2_gfed.loc[1850:2014] + self.h2_prod_ch4.loc[1850:2014] +self.h2_prod_nmvoc.loc[1850:2014]
         year = tot_prod.index.values
-
+        print(year)
+        print(len(self.h2_prod_ch4.loc[1850:2014]))
         
         nit_fix = 5.0
 
@@ -120,13 +121,29 @@ class SIMPLEH2:
         else:
             q = 1./self.tau_1 + 1/self.tau_2
         conc_local = self.pre_ind_conc
-        for i,y in enumerate(year):
+        for y in year:
             
             if const_oh != 1:
-                q = 1.0/(TAU_1*ch4lifetime_fact.loc[year]) + 1/self.tau_2
+                q = 1.0/(TAU_1*ch4lifetime_fact.loc[y]) + 1/self.tau_2
 
-            emis = tot_prod['Emis'].loc[year] + nit_fix
+            emis = tot_prod['Emis'].loc[y] + nit_fix
             point_conc = emis/beta_h2
             conc_local = point_conc/q + (conc_local  -point_conc/q)*np.exp(-q)
 
-            self.conc_h2.loc[year] = conc_local
+            self.conc_h2.loc[y] = conc_local
+
+    def calc_istope_timeseries(iso_h2_antr=190, iso_h2_gfed=-290, iso_h2_prod_ch4=160, iso_h2_prod_nmvoc=160,iso_h2_fix=-700, frac_soil=0.943,frac_oh=0.58):
+        
+        tot_prod = self.h2_antr.loc[1850:2014] + self.h2_gfed.loc[1850:2014] + self.h2_prod_ch4.loc[1850:2014] +self.h2_prod_nmvoc.loc[1850:2014]
+        year = tot_prod.index.values
+        nit_fix = 5.0
+        frac_sink = 0.943*0.85+0.58*0.15
+        if const_oh != 1:
+            ch4_lifetime_fact = calc_lifetime_fact(year)
+        else:
+            frac_sink = 0.943*
+        for y in year:
+            em = tot_prod['Emis'].loc[y]  + nit_fix
+            iso_sources = (iso_h2_antr*self.h2_antr.loc[year[i]]/em)+(iso_h2_gfed*self.h2_gfed.loc[y]/em)+(iso_h2_prod_ch4*self.h2_prod_ch4.loc[y]/em)+(iso_h2_prod_nmvoc*self.h2_prod_nmvoc.loc[y]/em)+(iso_h2_nit_fix*nit_fix/em)
+            iso_atm = 1000*((iso_sources/1000+1)/frac_sink -1)
+            
