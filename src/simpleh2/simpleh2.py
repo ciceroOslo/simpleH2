@@ -2,7 +2,6 @@
 SIMPLEH2
 """
 import logging
-import sys
 
 import numpy as np
 import pandas as pd
@@ -89,7 +88,7 @@ def calc_h2_gfed(
 
     Parameters
     ----------
-    h2_gfd_temp : pd.DataFrame
+    h2_gfed_temp : pd.DataFrame
                   Dataframe template to fill in
     gfedfile : str
                Path to gfed data file
@@ -132,7 +131,7 @@ class SIMPLEH2:
             Dataframe for hydrogen emissions from biomass burning
     """
 
-    def __init__(self, pam_dict=None):
+    def __init__(self, pam_dict=None, ceds21=True):
         self.pam_dict = check_numeric_pamset(
             {
                 "refyr": 2010,
@@ -140,6 +139,7 @@ class SIMPLEH2:
                 "prod_ref": 75.6,
                 "tau_2": 2.4,
                 "tau_1": 7.2,
+                "nit_fix": 5,
             },
             pam_dict,
         )
@@ -161,7 +161,7 @@ class SIMPLEH2:
         )
         self.h2_prod_ch4.columns = ["Emis"]
         self.h2_prod_ch4.index.name = "Year"
-        self._calc_h2_antr()
+        self._calc_h2_antr(ceds21)
         self.h2_gfed = calc_h2_gfed(self.h2_antr.copy() * 0.0)
 
     def _prepare_concentrations(self, meth_path):
@@ -229,10 +229,8 @@ class SIMPLEH2:
             + self.h2_prod_nmvoc.loc[1850:2014]
         )
         year = tot_prod.index.values
-        print(year)
-        print(len(self.h2_prod_ch4.loc[1850:2014]))
 
-        nit_fix = 5.0
+        self.pam_dict["nit_fix"] = 5.0
 
         # Factor converting emissions to mixing ratios (Tg CH4/ppbv)
 
@@ -244,29 +242,26 @@ class SIMPLEH2:
         #
         # exit()
         beta_h2 = 5.1352e9 * 2.0 / 28.97 * 1e-9  # 2.84
-        print(beta_h2)
-        print(0.37)
-        print(0.352)
 
         if const_oh != 1:
-            ch4_lifetime_fact = calc_lifetime_ch4_fact(year)
+            ch4_lifetime_fact = calc_ch4_lifetime_fact(year)
         else:
             q = 1.0 / self.pam_dict["tau_1"] + 1 / self.pam_dict["tau_2"]
         conc_local = self.pam_dict["pre_ind_conc"]
         for y in year:
             if const_oh != 1:
                 q = (
-                    1.0 / (self.pam_dict["tau_1"] * calc_ch4_lifetime_fact.loc[y])
-                    + 1 / self.pam_dict[tau_2]
+                    1.0 / (self.pam_dict["tau_1"] * ch4_lifetime_fact.loc[y])
+                    + 1 / self.pam_dict["tau_2"]
                 )
 
-            emis = tot_prod["Emis"].loc[y] + nit_fix
+            emis = tot_prod["Emis"].loc[y] + self.pam_dict["nit_fix"]
             point_conc = emis / beta_h2
             conc_local = point_conc / q + (conc_local - point_conc / q) * np.exp(-q)
 
             self.conc_h2.loc[y] = conc_local
 
-    def calc_istope_timeseries(self, parameter_dict=None, const_oh=0):
+    def calc_isotope_timeseries(self, parameter_dict=None, const_oh=0):
         """
         Calculate isotopic compositions
 
@@ -280,7 +275,14 @@ class SIMPLEH2:
                   If the value of this is 1, oh will be assumed constant
                   otherwise oh-concentrations will be calculated based on
                   methane concentraions, to give a varrying OH-sink lifetime
+
+        Returns
+        -------
+        pd.timeseries
+                     Isotopic composition in the atmosphere timeseries
         """
+        iso_atm_timeseries = self.conc_h2.copy()
+        iso_atm_timeseries.columns = ["iso_atmos"]
         pam_dict = check_numeric_pamset(
             {
                 "iso_h2_antr": 190,
@@ -300,19 +302,32 @@ class SIMPLEH2:
             + self.h2_prod_nmvoc.loc[1850:2014]
         )
         year = tot_prod.index.values
-        nit_fix = 5.0
-        frac_sink = 0.943 * 0.85 + 0.58 * 0.15
+        self.pam_dict["nit_fix"] = 5.0
+        frac_sink = 0.943 * self.pam_dict["tau_1"] / (
+            self.pam_dict["tau_1"] + self.pam_dict["tau_2"]
+        ) + 0.58 * self.pam_dict["tau_2"] / (
+            self.pam_dict["tau_1"] + self.pam_dict["tau_2"]
+        )
         if const_oh != 1:
-            ch4_lifetime_fact = calc_lifetime_ch4_fact(year)
-        else:
-            frac_sink = 0.943 * 0.85 + 0.58 * 0.15
+            ch4_lifetime_fact = calc_ch4_lifetime_fact(year)
         for y in year:
-            emis = tot_prod["Emis"].loc[y] + nit_fix
+            emis = tot_prod["Emis"].loc[y] + self.pam_dict["nit_fix"]
             iso_sources = (
-                (pam_dict["iso_h2_antr"] * self.h2_antr.loc[year[y]] / emis)
+                (pam_dict["iso_h2_antr"] * self.h2_antr.loc[y] / emis)
                 + (pam_dict["iso_h2_gfed"] * self.h2_gfed.loc[y] / emis)
                 + (pam_dict["iso_h2_prod_ch4"] * self.h2_prod_ch4.loc[y] / emis)
                 + (pam_dict["iso_h2_prod_nmvoc"] * self.h2_prod_nmvoc.loc[y] / emis)
-                + (pam_dict["iso_h2_nit_fix"] * nit_fix / emis)
+                + (pam_dict["iso_h2_nit_fix"] * self.pam_dict["nit_fix"] / emis)
             )
-            iso_atm = 1000 * ((iso_sources / 1000 + 1) / frac_sink - 1)
+            if const_oh != 1:
+                tau_1_here = self.pam_dict["tau_1"] / ch4_lifetime_fact.loc[y]
+                frac_sink = 0.943 * tau_1_here / (
+                    tau_1_here + self.pam_dict["tau_2"]
+                ) + 0.58 * self.pam_dict["tau_2"] / (
+                    tau_1_here + self.pam_dict["tau_2"]
+                )
+
+            iso_atm_timeseries.loc[y] = 1000 * (
+                (iso_sources / 1000 + 1) / frac_sink - 1
+            )
+        return iso_atm_timeseries
