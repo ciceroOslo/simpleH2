@@ -2,7 +2,7 @@ import os.path
 
 import pytest
 
-#from simpleh2 import simpleh2
+# from simpleh2 import simpleh2
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-data")
 
