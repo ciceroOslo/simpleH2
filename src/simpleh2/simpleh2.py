@@ -73,7 +73,6 @@ def calc_ch4_lifetime_fact(year, anom_year=2000):
     filename_oh = oh_anomaly + "_CH4lifetime_" + oh_run + ".txt"
     lifetime = pd.read_csv(path + filename_oh, delimiter=",", index_col=0)
     lifetime = lifetime.loc[startyr:endyear]
-
     lifetime_ref = lifetime["Lifetime"].loc[anom_year]
     ch4lifetime_fact.loc[lifetime.index] = lifetime / lifetime_ref
     return ch4lifetime_fact
@@ -251,10 +250,13 @@ class SIMPLEH2:
         for y in year:
             if const_oh != 1:
                 q = (
-                    1.0 / (self.pam_dict["tau_1"] * ch4_lifetime_fact.loc[y])
+                    1.0
+                    / (
+                        self.pam_dict["tau_1"]
+                        * ch4_lifetime_fact["lifetime_fact"].loc[y]
+                    )
                     + 1 / self.pam_dict["tau_2"]
                 )
-
             emis = tot_prod["Emis"].loc[y] + self.pam_dict["nit_fix"]
             point_conc = emis / beta_h2
             conc_local = point_conc / q + (conc_local - point_conc / q) * np.exp(-q)
@@ -309,6 +311,7 @@ class SIMPLEH2:
             self.pam_dict["tau_1"] + self.pam_dict["tau_2"]
         )
         if const_oh != 1:
+            print("Hello")
             ch4_lifetime_fact = calc_ch4_lifetime_fact(year)
         for y in year:
             emis = tot_prod["Emis"].loc[y] + self.pam_dict["nit_fix"]
@@ -320,7 +323,11 @@ class SIMPLEH2:
                 + (pam_dict["iso_h2_nit_fix"] * self.pam_dict["nit_fix"] / emis)
             )
             if const_oh != 1:
-                tau_1_here = self.pam_dict["tau_1"] / ch4_lifetime_fact.loc[y]
+                print("Is it me you're looking for?")
+                tau_1_here = (
+                    self.pam_dict["tau_1"] / ch4_lifetime_fact["lifetime_fact"].loc[y]
+                )
+
                 frac_sink = 0.943 * tau_1_here / (
                     tau_1_here + self.pam_dict["tau_2"]
                 ) + 0.58 * self.pam_dict["tau_2"] / (
