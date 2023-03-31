@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 from simpleh2 import SIMPLEH2
@@ -11,7 +12,7 @@ def test_simpleh2_functions():
     assert sh2.conc_h2["H2"][1852] == -1
 
     sh2.calculate_concentrations()
-    assert sh2.conc_h2["H2"][1852] != -1
+    assert np.allclose(sh2.conc_h2["H2"][1852], 335.141493)
 
     sh2_test_2 = SIMPLEH2(pam_dict={"refyr": "lastyear", "nit_fix": 4.5}, ceds21=False)
     sh2_test_2.calculate_concentrations(const_oh=1)
