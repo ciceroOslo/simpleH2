@@ -311,7 +311,6 @@ class SIMPLEH2:
             self.pam_dict["tau_1"] + self.pam_dict["tau_2"]
         )
         if const_oh != 1:
-            print("Hello")
             ch4_lifetime_fact = calc_ch4_lifetime_fact(year)
         for y in year:
             emis = tot_prod["Emis"].loc[y] + self.pam_dict["nit_fix"]
@@ -323,7 +322,6 @@ class SIMPLEH2:
                 + (pam_dict["iso_h2_nit_fix"] * self.pam_dict["nit_fix"] / emis)
             )
             if const_oh != 1:
-                print("Is it me you're looking for?")
                 tau_1_here = (
                     self.pam_dict["tau_1"] / ch4_lifetime_fact["lifetime_fact"].loc[y]
                 )
