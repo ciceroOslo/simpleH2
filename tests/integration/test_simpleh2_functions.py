@@ -6,7 +6,6 @@ from simpleh2 import SIMPLEH2
 
 def test_simpleh2_functions():
     sh2 = SIMPLEH2()
-    print(sh2.conc_ch4.head)
     assert type(sh2.conc_h2) == pd.DataFrame
     assert len(sh2.conc_h2) == len(range(1850, 2021))
     assert sh2.conc_h2["H2"][1852] == -1
@@ -21,3 +20,5 @@ def test_simpleh2_functions():
 
     assert iso1.columns == iso2.columns
     assert len(iso1["iso_atmos"]) == len(iso2["iso_atmos"])
+    assert not any(np.isnan(iso1["iso_atmos"].values))
+    assert not any(np.isnan(iso2["iso_atmos"].values))

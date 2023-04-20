@@ -331,8 +331,8 @@ class SIMPLEH2:
                 ) + 0.58 * self.pam_dict["tau_2"] / (
                     tau_1_here + self.pam_dict["tau_2"]
                 )
-
             iso_atm_timeseries.loc[y] = 1000 * (
-                (iso_sources / 1000 + 1) / frac_sink - 1
+                (iso_sources["Emis"] / 1000 + 1) / frac_sink - 1
             )
+
         return iso_atm_timeseries
