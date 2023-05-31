@@ -152,8 +152,9 @@ class SIMPLEH2:
             meth_path="/div/qbo/users/ragnhibs/Methane/INPUT/ch4_atm_cmip6_upd.txt"
         )
         self._calc_h2_prod_nmvoc(
+            nmvoc_path2="/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_NMVOC_CEDS21.csv",
             nmvoc_path="/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_NMVOC_CEDS17.csv",
-            frac_voc=frac_voc,
+            frac_voc=frac_voc
         )
         self.h2_prod_ch4 = (
             self.conc_ch4 / self.conc_ch4.loc[self.pam_dict["refyr"]] * frac_ch4
@@ -176,15 +177,19 @@ class SIMPLEH2:
         self.conc_h2.columns = ["H2"]
         self.conc_h2["H2"] = -1
 
-    def _calc_h2_prod_nmvoc(self, nmvoc_path, frac_voc):
+    def _calc_h2_prod_nmvoc(self, nmvoc_path,nmvoc_path2, frac_voc,ceds21=True):
         # Natural emis NMVOC:
         # Sum NMVOC used in the model 2010 and 1850.
         # 764.1 vs 648.87, increase since pre-ind: 115.23
         # Increase in total VOC CEDS: 10.77 to 161.06, increase of 150.3
         frac_voc_used = 115.23 / 150.3
         nat_emis = 648.87 - 10.77 * frac_voc_used  # Used in the model
-
+        
         nmvoc_emis = pd.read_csv(nmvoc_path, index_col=0)
+        if ceds21:
+            nmvoc_emis2 = pd.read_csv(nmvoc_path2, index_col=0)
+            nmvoc_emis = pd.concat([nmvoc_emis.loc[:1950], nmvoc_emis2.loc[1951:]])
+
         nmvoc_emis = nmvoc_emis * frac_voc_used
         self.h2_prod_nmvoc = (
             (nmvoc_emis + nat_emis)
@@ -194,8 +199,8 @@ class SIMPLEH2:
         self.h2_prod_nmvoc.index.name = "Year"
 
     def _calc_h2_antr(self, ceds21=True):
-        scaling_co = 0.47 * 2.0 / 28.0
-        # scaling_co = 0.39*2.0/28.0
+        #scaling_co = 0.47 * 2.0 / 28.0
+        scaling_co = 0.34*2.0/28.0
         co_file = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
         co_file1 = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
         co_file2 = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS21.csv"
@@ -210,7 +215,7 @@ class SIMPLEH2:
 
         self.h2_antr.index.name = "Year"
 
-    def calculate_concentrations(self, const_oh=0):
+    def calculate_concentrations(self, const_oh=0, startyr=1850,endyr=2014):
         """
         Calculate hydrogen concentrations
 
@@ -222,10 +227,10 @@ class SIMPLEH2:
                   methane concentraions, to give a varrying OH-sink lifetime
         """
         tot_prod = (
-            self.h2_antr.loc[1850:2014]
-            + self.h2_gfed.loc[1850:2014]
-            + self.h2_prod_ch4.loc[1850:2014]
-            + self.h2_prod_nmvoc.loc[1850:2014]
+            self.h2_antr.loc[startyr:endyr]
+            + self.h2_gfed.loc[startyr:endyr]
+            + self.h2_prod_ch4.loc[startyr:endyr]
+            + self.h2_prod_nmvoc.loc[startyr:endyr]
         )
         year = tot_prod.index.values
 
@@ -298,10 +303,10 @@ class SIMPLEH2:
             parameter_dict,
         )
         tot_prod = (
-            self.h2_antr.loc[1850:2014]
-            + self.h2_gfed.loc[1850:2014]
-            + self.h2_prod_ch4.loc[1850:2014]
-            + self.h2_prod_nmvoc.loc[1850:2014]
+            self.h2_antr.loc[startyr:endyr]
+            + self.h2_gfed.loc[startyr:endyr]
+            + self.h2_prod_ch4.loc[startyr:endyr]
+            + self.h2_prod_nmvoc.loc[startyr:endyr]
         )
         year = tot_prod.index.values
         self.pam_dict["nit_fix"] = 5.0
