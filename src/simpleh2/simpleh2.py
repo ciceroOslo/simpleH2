@@ -78,16 +78,15 @@ def calc_ch4_lifetime_fact(year, anom_year=2000):
     return ch4lifetime_fact
 
 
-def calc_h2_gfed(
-    h2_gfed_temp,
-    gfedfile="/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt",
-):
+def calc_h2_bb_emis(
+    h2_bb_emis_temp): 
+
     """
     Read in and make dataframe of biomass burning h2 data from gfed
 
     Parameters
     ----------
-    h2_gfed_temp : pd.DataFrame
+    h2_bb_emis_temp : pd.DataFrame
                   Dataframe template to fill in
     gfedfile : str
                Path to gfed data file
@@ -97,11 +96,13 @@ def calc_h2_gfed(
     pd.DataFrame
                 Inread biomass burning emissions
     """
-    h2_gfed_org = pd.read_csv(gfedfile, index_col=0)
-    h2_gfed_org.index.name = "Year"
-    h2_gfed_temp.index.name = "Year"
-    h2_gfed_temp["Emis"][:] = h2_gfed_org["Emis"].mean()
-    return h2_gfed_temp.loc[:1996].append(h2_gfed_org)
+    
+    bb_emis_file="/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt"
+    h2_bb_emis_org = pd.read_csv(bb_emis_file, index_col=0)
+    h2_bb_emis_org.index.name = "Year"
+    h2_bb_emis_temp.index.name = "Year"
+    h2_bb_emis_temp["Emis"][:] = h2_bb_emis_org["Emis"].mean()
+    return h2_bb_emis_temp.loc[:1996].append(h2_bb_emis_org)
 
 
 class SIMPLEH2:
@@ -139,7 +140,7 @@ class SIMPLEH2:
                 "tau_2": 2.4,
                 "tau_1": 7.2,
                 "nit_fix": 5,
-                "scaling_co":0.34*2.0/28.0
+                "scaling_co":0.34*2.0/28.0,
             },
             pam_dict,
         )
@@ -149,6 +150,7 @@ class SIMPLEH2:
             "prod_ref"
         ]
 
+        
         self.scaling_co=self.pam_dict["scaling_co"]
         
         self._prepare_concentrations(
@@ -165,9 +167,14 @@ class SIMPLEH2:
         self.h2_prod_ch4.columns = ["Emis"]
         self.h2_prod_ch4.index.name = "Year"
         self._calc_h2_antr(ceds21)
-        self.h2_gfed = calc_h2_gfed(self.h2_antr.copy() * 0.0)
-
+        
+        self.h2_bb_emis = calc_h2_bb_emis(self.h2_antr.copy() * 0.0)
+        print(self)
+       
+        
     def _prepare_concentrations(self, meth_path):
+        
+        
         data_conc = pd.read_csv(meth_path, index_col=0)
         data_conc.index.name = "Year"
         data_conc.columns = ["CH4"]
@@ -218,7 +225,7 @@ class SIMPLEH2:
 
         self.h2_antr.index.name = "Year"
 
-    def calculate_concentrations(self, const_oh=0, startyr=1850,endyr=2014):
+    def calculate_concentrations(self, h2_antr_emi,const_oh=0,startyr=1850,endyr=2014):
         """
         Calculate hydrogen concentrations
 
@@ -229,16 +236,19 @@ class SIMPLEH2:
                   otherwise oh-concentrations will be calculated based on
                   methane concentraions, to give a varrying OH-sink lifetime
         """
+        
         tot_prod = (
-            self.h2_antr.loc[startyr:endyr]
-            + self.h2_gfed.loc[startyr:endyr]
+            h2_antr_emi.loc[startyr:endyr]
+            + self.h2_bb_emis.loc[startyr:endyr]
             + self.h2_prod_ch4.loc[startyr:endyr]
             + self.h2_prod_nmvoc.loc[startyr:endyr]
         )
+        self.h2_antr_emi = h2_antr_emi
+
         year = tot_prod.index.values
 
-        #self.pam_dict["nit_fix"] = 9.0
-
+        print(self.pam_dict)# = 9.0
+       
         # Factor converting emissions to mixing ratios (Tg CH4/ppbv)
 
         # Atmospheric mass conversion H2  [Tg/ppb]	0.37
@@ -307,7 +317,7 @@ class SIMPLEH2:
         )
         tot_prod = (
             self.h2_antr.loc[startyr:endyr]
-            + self.h2_gfed.loc[startyr:endyr]
+            + self.h2_bb_emis.loc[startyr:endyr]
             + self.h2_prod_ch4.loc[startyr:endyr]
             + self.h2_prod_nmvoc.loc[startyr:endyr]
         )

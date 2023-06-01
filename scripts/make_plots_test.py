@@ -12,10 +12,14 @@ sh2 = SIMPLEH2()
 print(sh2.conc_ch4.head)
 
 
-sh2.calculate_concentrations()
+#sh2.calculate_concentrations()
 
 startyr = 1850
 endyr = 2019
+h2_antr_org = pd.read_csv('../input/h2_antr_ceds21.csv',index_col=0)
+print(h2_antr_org)
+
+
 
 nit_fix = 9.0
 pam_dict_osloctm ={"refyr": 2010,
@@ -23,14 +27,15 @@ pam_dict_osloctm ={"refyr": 2010,
                    "prod_ref": 56.3,
                    "tau_2": 3.3,
                    "tau_1": 6.9,
-                   "nit_fix": nit_fix}
+                   "nit_fix": nit_fix,
+                   "bb_emis_file":"/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt"}
 
 sh2_test_2 = SIMPLEH2(pam_dict=pam_dict_osloctm, ceds21=True)
 
 #print(sh2_test_2.ch4_lifetime_fact)
 #exit()
 
-sh2_test_2.calculate_concentrations(const_oh=1,startyr=startyr,endyr=endyr)
+sh2_test_2.calculate_concentrations(const_oh=1,h2_antr_emi=h2_antr_org,startyr=startyr,endyr=endyr)
 #iso1 = sh2.calc_isotope_timeseries()
 #iso2 = sh2_test_2.calc_isotope_timeseries(const_oh=1)
 
@@ -43,7 +48,7 @@ fig, axs = plt.subplots(nrows=2,ncols=2,sharex=False,sharey=False,squeeze=True,f
 
 #Plot production/emissions:
 axs[0,0].plot(sh2_test_2.h2_antr,'-', linewidth =2,label='Anthr. em.')
-axs[0,0].plot(sh2_test_2.h2_gfed,'-', linewidth =2,label='BB. em.')
+axs[0,0].plot(sh2_test_2.h2_bb_emis,'-', linewidth =2,label='BB. em.')
 axs[0,0].plot([startyr,endyr],[nit_fix,nit_fix],'-', linewidth =2,label='Nitrate fixation (ocean and land)')
 axs[0,0].plot(sh2_test_2.h2_prod_ch4,'-', linewidth =2,label='Prod (ch4)')
 axs[0,0].plot(sh2_test_2.h2_prod_nmvoc,'-', linewidth =2,label='Prod (nmvoc)')
@@ -55,10 +60,10 @@ axs[0,0].legend()
 
 
 
-tot_prod = sh2_test_2.h2_antr.loc[startyr:endyr] + sh2_test_2.h2_gfed.loc[startyr:endyr] + sh2_test_2.h2_prod_ch4.loc[startyr:endyr] +sh2_test_2.h2_prod_nmvoc.loc[startyr:endyr] 
+tot_prod = sh2_test_2.h2_antr.loc[startyr:endyr] + sh2_test_2.h2_bb_emis.loc[startyr:endyr] + sh2_test_2.h2_prod_ch4.loc[startyr:endyr] +sh2_test_2.h2_prod_nmvoc.loc[startyr:endyr] 
 print(tot_prod.index.values)
 
-tot_emis = sh2_test_2.h2_antr.loc[startyr:endyr] + sh2_test_2.h2_gfed.loc[startyr:endyr] + nit_fix
+tot_emis = sh2_test_2.h2_antr.loc[startyr:endyr] + sh2_test_2.h2_bb_emis.loc[startyr:endyr] + nit_fix
 tot_atm_prod = sh2_test_2.h2_prod_ch4.loc[startyr:endyr] +sh2_test_2.h2_prod_nmvoc.loc[startyr:endyr]
 
 
@@ -76,12 +81,12 @@ emis_pre_ind = 18.32
 axs[0,1].plot([1850,2010],[prod_pre_ind,56.3],'x', linewidth =2,label='OsloCTM')
 axs[0,1].plot([1850,2010],[emis_pre_ind,31.6],'x', linewidth =2,label='OsloCTM')
 
-
+axs[1,0].plot([1850],[pre_ind_conc_ctm],'x', linewidth =2,label='OsloCTM')
 
 axs[0,1].set_ylim(bottom=0)
 axs[0,1].legend()
 
-axs[1,0].plot(sh2.conc_h2,'-', linewidth =2,label='Concentration')
+#axs[1,0].plot(sh2.conc_h2,'-', linewidth =2,label='Concentration')
 axs[1,0].plot(sh2_test_2.conc_h2,'-', linewidth =2,label='Concentration')
 #axs[1,0].set_xlim([startyr,endyear])
 axs[1,0].set_xlabel("Years")
