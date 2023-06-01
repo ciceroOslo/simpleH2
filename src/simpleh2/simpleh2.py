@@ -2,11 +2,28 @@
 SIMPLEH2
 """
 import logging
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 
 LOGGER = logging.getLogger(__name__)
+
+
+@dataclass
+class SimpleH2DataPaths:
+    """
+    Dataclass to hold paths to files that the SimpleH2 class uses
+    """
+
+    meth_path: str = "/div/qbo/users/ragnhibs/Methane/INPUT/ch4_atm_cmip6_upd.txt"
+    nmvoc_path: str = (
+        "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_NMVOC_CEDS17.csv"
+    )
+    co_file: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
+    co_file1: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
+    co_file2: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS21.csv"
+    gfed_file: str = "/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt"
 
 
 def check_numeric_pamset(required, pamset):
@@ -47,7 +64,11 @@ def check_numeric_pamset(required, pamset):
     return pamset
 
 
-def calc_ch4_lifetime_fact(year, anom_year=2000):
+def calc_ch4_lifetime_fact(
+    year,
+    anom_year=2000,
+    path="/div/qbo/users/ragnhibs/Methane/OH/OsloCTM3/ForBoxModel/",
+):
     """
     Calculate methane lifetime factor for timeseries of years
 
@@ -57,6 +78,8 @@ def calc_ch4_lifetime_fact(year, anom_year=2000):
            Array with years
     anom_year : int
            Anomaly/ reference year, default 2000
+    path : str
+           Path to methane timeseries data
     Returns
     -------
     pd.DataFrame
@@ -67,7 +90,6 @@ def calc_ch4_lifetime_fact(year, anom_year=2000):
     ch4lifetime_fact = pd.DataFrame({"lifetime_fact": lifetime_fact}, index=year)
     oh_anomaly = "OsloCTM3"
     oh_run = "histO3"
-    path = "/div/qbo/users/ragnhibs/Methane/OH/OsloCTM3/ForBoxModel/"
     startyr = year[0]
     endyear = year[-1]
     filename_oh = oh_anomaly + "_CH4lifetime_" + oh_run + ".txt"
@@ -104,7 +126,7 @@ def calc_h2_gfed(
     return h2_gfed_temp.loc[:1996].append(h2_gfed_org)
 
 
-class SIMPLEH2:
+class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
     """
     Simple hydrogen concentration modelling class
 
@@ -130,7 +152,7 @@ class SIMPLEH2:
             Dataframe for hydrogen emissions from biomass burning
     """
 
-    def __init__(self, pam_dict=None, ceds21=True):
+    def __init__(self, pam_dict=None, ceds21=True, paths=None):
         self.pam_dict = check_numeric_pamset(
             {
                 "refyr": 2010,
@@ -142,17 +164,17 @@ class SIMPLEH2:
             },
             pam_dict,
         )
+        if paths is None:
+            paths = {}
         # frac numbers from Ehhalt and Roherer 2009
         frac_voc = 18.0 / 41.1 * self.pam_dict["prod_ref"]
         frac_ch4 = (1 - frac_voc / self.pam_dict["prod_ref"]) * self.pam_dict[
             "prod_ref"
         ]
+        self.paths = SimpleH2DataPaths(**paths)
 
-        self._prepare_concentrations(
-            meth_path="/div/qbo/users/ragnhibs/Methane/INPUT/ch4_atm_cmip6_upd.txt"
-        )
+        self._prepare_concentrations()
         self._calc_h2_prod_nmvoc(
-            nmvoc_path="/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_NMVOC_CEDS17.csv",
             frac_voc=frac_voc,
         )
         self.h2_prod_ch4 = (
@@ -161,10 +183,10 @@ class SIMPLEH2:
         self.h2_prod_ch4.columns = ["Emis"]
         self.h2_prod_ch4.index.name = "Year"
         self._calc_h2_antr(ceds21)
-        self.h2_gfed = calc_h2_gfed(self.h2_antr.copy() * 0.0)
+        self.h2_gfed = calc_h2_gfed(self.h2_antr.copy() * 0.0, self.paths.gfed_file)
 
-    def _prepare_concentrations(self, meth_path):
-        data_conc = pd.read_csv(meth_path, index_col=0)
+    def _prepare_concentrations(self):
+        data_conc = pd.read_csv(self.paths.meth_path, index_col=0)
         data_conc.index.name = "Year"
         data_conc.columns = ["CH4"]
 
@@ -176,7 +198,7 @@ class SIMPLEH2:
         self.conc_h2.columns = ["H2"]
         self.conc_h2["H2"] = -1
 
-    def _calc_h2_prod_nmvoc(self, nmvoc_path, frac_voc):
+    def _calc_h2_prod_nmvoc(self, frac_voc):
         # Natural emis NMVOC:
         # Sum NMVOC used in the model 2010 and 1850.
         # 764.1 vs 648.87, increase since pre-ind: 115.23
@@ -184,7 +206,7 @@ class SIMPLEH2:
         frac_voc_used = 115.23 / 150.3
         nat_emis = 648.87 - 10.77 * frac_voc_used  # Used in the model
 
-        nmvoc_emis = pd.read_csv(nmvoc_path, index_col=0)
+        nmvoc_emis = pd.read_csv(self.paths.nmvoc_path, index_col=0)
         nmvoc_emis = nmvoc_emis * frac_voc_used
         self.h2_prod_nmvoc = (
             (nmvoc_emis + nat_emis)
@@ -196,21 +218,22 @@ class SIMPLEH2:
     def _calc_h2_antr(self, ceds21=True):
         scaling_co = 0.47 * 2.0 / 28.0
         # scaling_co = 0.39*2.0/28.0
-        co_file = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
-        co_file1 = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
-        co_file2 = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS21.csv"
 
         if ceds21:
-            h2_antr1 = pd.read_csv(co_file1, index_col=0) * scaling_co
-            h2_antr2 = pd.read_csv(co_file2, index_col=0) * scaling_co
+            h2_antr1 = pd.read_csv(self.paths.co_file1, index_col=0) * scaling_co
+            h2_antr2 = pd.read_csv(self.paths.co_file2, index_col=0) * scaling_co
             self.h2_antr = pd.concat([h2_antr1.loc[:1950], h2_antr2.loc[1951:]])
 
         else:
-            self.h2_antr = pd.read_csv(co_file, index_col=0) * scaling_co
+            self.h2_antr = pd.read_csv(self.paths.co_file, index_col=0) * scaling_co
 
         self.h2_antr.index.name = "Year"
 
-    def calculate_concentrations(self, const_oh=0):
+    def calculate_concentrations(
+        self,
+        const_oh=0,
+        path_oh="/div/qbo/users/ragnhibs/Methane/OH/OsloCTM3/ForBoxModel/",
+    ):
         """
         Calculate hydrogen concentrations
 
@@ -220,6 +243,8 @@ class SIMPLEH2:
                   If the value of this is 1, oh will be assumed constant
                   otherwise oh-concentrations will be calculated based on
                   methane concentraions, to give a varrying OH-sink lifetime
+        path_oh : str
+                  path to oh datafile
         """
         tot_prod = (
             self.h2_antr.loc[1850:2014]
@@ -243,7 +268,7 @@ class SIMPLEH2:
         beta_h2 = 5.1352e9 * 2.0 / 28.97 * 1e-9  # 2.84
 
         if const_oh != 1:
-            ch4_lifetime_fact = calc_ch4_lifetime_fact(year)
+            ch4_lifetime_fact = calc_ch4_lifetime_fact(year, path=path_oh)
         else:
             q = 1.0 / self.pam_dict["tau_1"] + 1 / self.pam_dict["tau_2"]
         conc_local = self.pam_dict["pre_ind_conc"]
@@ -263,7 +288,12 @@ class SIMPLEH2:
 
             self.conc_h2.loc[y] = conc_local
 
-    def calc_isotope_timeseries(self, parameter_dict=None, const_oh=0):
+    def calc_isotope_timeseries(
+        self,
+        parameter_dict=None,
+        const_oh=0,
+        path_oh="/div/qbo/users/ragnhibs/Methane/OH/OsloCTM3/ForBoxModel/",
+    ):
         """
         Calculate isotopic compositions
 
@@ -277,6 +307,8 @@ class SIMPLEH2:
                   If the value of this is 1, oh will be assumed constant
                   otherwise oh-concentrations will be calculated based on
                   methane concentraions, to give a varrying OH-sink lifetime
+        path_oh : str
+                  path to oh datafile
 
         Returns
         -------
@@ -311,7 +343,7 @@ class SIMPLEH2:
             self.pam_dict["tau_1"] + self.pam_dict["tau_2"]
         )
         if const_oh != 1:
-            ch4_lifetime_fact = calc_ch4_lifetime_fact(year)
+            ch4_lifetime_fact = calc_ch4_lifetime_fact(year, path=path_oh)
         for y in year:
             emis = tot_prod["Emis"].loc[y] + self.pam_dict["nit_fix"]
             iso_sources = (
