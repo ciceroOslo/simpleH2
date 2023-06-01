@@ -139,6 +139,7 @@ class SIMPLEH2:
                 "tau_2": 2.4,
                 "tau_1": 7.2,
                 "nit_fix": 5,
+                "scaling_co":0.34*2.0/28.0
             },
             pam_dict,
         )
@@ -148,6 +149,8 @@ class SIMPLEH2:
             "prod_ref"
         ]
 
+        self.scaling_co=self.pam_dict["scaling_co"]
+        
         self._prepare_concentrations(
             meth_path="/div/qbo/users/ragnhibs/Methane/INPUT/ch4_atm_cmip6_upd.txt"
         )
@@ -200,14 +203,14 @@ class SIMPLEH2:
 
     def _calc_h2_antr(self, ceds21=True):
         #scaling_co = 0.47 * 2.0 / 28.0
-        scaling_co = 0.34*2.0/28.0
+        #scaling_co = 0.34*2.0/28.0
         co_file = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
         co_file1 = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
         co_file2 = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS21.csv"
 
         if ceds21:
-            h2_antr1 = pd.read_csv(co_file1, index_col=0) * scaling_co
-            h2_antr2 = pd.read_csv(co_file2, index_col=0) * scaling_co
+            h2_antr1 = pd.read_csv(co_file1, index_col=0) * self.scaling_co
+            h2_antr2 = pd.read_csv(co_file2, index_col=0) * self.scaling_co
             self.h2_antr = pd.concat([h2_antr1.loc[:1950], h2_antr2.loc[1951:]])
 
         else:
@@ -234,7 +237,7 @@ class SIMPLEH2:
         )
         year = tot_prod.index.values
 
-        self.pam_dict["nit_fix"] = 5.0
+        #self.pam_dict["nit_fix"] = 9.0
 
         # Factor converting emissions to mixing ratios (Tg CH4/ppbv)
 
