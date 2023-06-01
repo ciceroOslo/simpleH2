@@ -2,13 +2,29 @@
 SIMPLEH2
 """
 import logging
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 
 LOGGER = logging.getLogger(__name__)
 
+@dataclass
+class SimpleH2DataPaths:
+    """
+    Dataclass to hold paths to files that the SimpleH2 class uses
+    """
 
+    meth_path: str = "/div/qbo/users/ragnhibs/Methane/INPUT/ch4_atm_cmip6_upd.txt"
+    nmvoc_path: str = (
+        "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_NMVOC_CEDS17.csv"
+    )
+    co_file: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
+    co_file1: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
+    co_file2: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS21.csv"
+    gfed_file: str = "/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt"
+
+    
 def check_numeric_pamset(required, pamset):
     """
     Check numeric pamset conforms
@@ -131,7 +147,7 @@ class SIMPLEH2:
             Dataframe for hydrogen emissions from biomass burning
     """
 
-    def __init__(self, pam_dict=None, ceds21=True):
+    def __init__(self, pam_dict=None, ceds21=True, paths=None):
         self.pam_dict = check_numeric_pamset(
             {
                 "refyr": 2010,
@@ -144,38 +160,36 @@ class SIMPLEH2:
             },
             pam_dict,
         )
+        if paths is None:
+            paths = {}
+            
         # frac numbers from Ehhalt and Roherer 2009
         frac_voc = 18.0 / 41.1 * self.pam_dict["prod_ref"]
         frac_ch4 = (1 - frac_voc / self.pam_dict["prod_ref"]) * self.pam_dict[
             "prod_ref"
         ]
 
+        self.paths = SimpleH2DataPaths(**paths)
         
         self.scaling_co=self.pam_dict["scaling_co"]
         
-        self._prepare_concentrations(
-            meth_path="/div/qbo/users/ragnhibs/Methane/INPUT/ch4_atm_cmip6_upd.txt"
-        )
-        self._calc_h2_prod_nmvoc(
-            nmvoc_path2="/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_NMVOC_CEDS21.csv",
-            nmvoc_path="/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_NMVOC_CEDS17.csv",
-            frac_voc=frac_voc
-        )
-        self.h2_prod_ch4 = (
-            self.conc_ch4 / self.conc_ch4.loc[self.pam_dict["refyr"]] * frac_ch4
-        )
+        self._prepare_concentrations()
+
+        self._calc_h2_prod_nmvoc(frac_voc=frac_voc)
+        
+        self.h2_prod_ch4 = (self.conc_ch4 / self.conc_ch4.loc[self.pam_dict["refyr"]] * frac_ch4)
+
         self.h2_prod_ch4.columns = ["Emis"]
         self.h2_prod_ch4.index.name = "Year"
         self._calc_h2_antr(ceds21)
         
         self.h2_bb_emis = calc_h2_bb_emis(self.h2_antr.copy() * 0.0)
+
         print(self)
        
         
-    def _prepare_concentrations(self, meth_path):
-        
-        
-        data_conc = pd.read_csv(meth_path, index_col=0)
+    def _prepare_concentrations(self):
+        data_conc = pd.read_csv(self.paths.meth_path, index_col=0)
         data_conc.index.name = "Year"
         data_conc.columns = ["CH4"]
 
@@ -187,7 +201,7 @@ class SIMPLEH2:
         self.conc_h2.columns = ["H2"]
         self.conc_h2["H2"] = -1
 
-    def _calc_h2_prod_nmvoc(self, nmvoc_path,nmvoc_path2, frac_voc,ceds21=True):
+    def _calc_h2_prod_nmvoc(self,frac_voc):
         # Natural emis NMVOC:
         # Sum NMVOC used in the model 2010 and 1850.
         # 764.1 vs 648.87, increase since pre-ind: 115.23
@@ -195,11 +209,8 @@ class SIMPLEH2:
         frac_voc_used = 115.23 / 150.3
         nat_emis = 648.87 - 10.77 * frac_voc_used  # Used in the model
         
-        nmvoc_emis = pd.read_csv(nmvoc_path, index_col=0)
-        if ceds21:
-            nmvoc_emis2 = pd.read_csv(nmvoc_path2, index_col=0)
-            nmvoc_emis = pd.concat([nmvoc_emis.loc[:1950], nmvoc_emis2.loc[1951:]])
-
+        nmvoc_emis = pd.read_csv(self.paths.nmvoc_path, index_col=0)
+    
         nmvoc_emis = nmvoc_emis * frac_voc_used
         self.h2_prod_nmvoc = (
             (nmvoc_emis + nat_emis)
@@ -211,21 +222,12 @@ class SIMPLEH2:
     def _calc_h2_antr(self, ceds21=True):
         #scaling_co = 0.47 * 2.0 / 28.0
         #scaling_co = 0.34*2.0/28.0
-        co_file = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
-        co_file1 = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
-        co_file2 = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS21.csv"
-
-        if ceds21:
-            h2_antr1 = pd.read_csv(co_file1, index_col=0) * self.scaling_co
-            h2_antr2 = pd.read_csv(co_file2, index_col=0) * self.scaling_co
-            self.h2_antr = pd.concat([h2_antr1.loc[:1950], h2_antr2.loc[1951:]])
-
-        else:
-            self.h2_antr = pd.read_csv(co_file, index_col=0) * scaling_co
-
+        print( self.paths.co_file)
+        exit()
+        self.h2_antr = pd.read_csv(self.paths.co_file, index_col=0) * self.scaling_co
         self.h2_antr.index.name = "Year"
 
-    def calculate_concentrations(self, h2_antr_emi,const_oh=0,startyr=1850,endyr=2014):
+    def calculate_concentrations(self,const_oh=0,startyr=1850,endyr=2014):
         """
         Calculate hydrogen concentrations
 
@@ -238,12 +240,12 @@ class SIMPLEH2:
         """
         
         tot_prod = (
-            h2_antr_emi.loc[startyr:endyr]
+            self.h2_antr.loc[startyr:endyr]
             + self.h2_bb_emis.loc[startyr:endyr]
             + self.h2_prod_ch4.loc[startyr:endyr]
             + self.h2_prod_nmvoc.loc[startyr:endyr]
         )
-        self.h2_antr_emi = h2_antr_emi
+        
 
         year = tot_prod.index.values
 

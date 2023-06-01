@@ -10,9 +10,9 @@ sys.path.append('/div/no-backup/users/ragnhibs/simpleH2/simpleH2/src/simpleh2/')
 from simpleh2 import SIMPLEH2
 
 def plot_results():
-    axs[0,0].plot(h2_antr,'-', color=mcol, linewidth =1.5,label=model)
+    axs[0,0].plot(sh2.h2_antr,'-', color=mcol, linewidth =1.5,label=model)
     axs[0,1].plot(sh2.h2_prod_ch4+sh2.h2_prod_nmvoc,'-',color=mcol, linewidth =1.5,label=model)
-    axs[1,0].plot(h2_antr+sh2.h2_bb_emis+nit_fix,'-', color=mcol, linewidth =1.5,label=model)
+    axs[1,0].plot(sh2.h2_antr+sh2.h2_bb_emis+nit_fix,'-', color=mcol, linewidth =1.5,label=model)
     axs[1,1].plot(sh2.conc_h2,'-', linewidth =1.5,color=mcol,label=model)
 
 #Read budget values from github: 2010 values for the different models.    
@@ -74,8 +74,9 @@ for m,model in enumerate(model_list):
     print(h2_emis_antr_model)
     scale_factor_antr = h2_emis_antr_model/h2_antr_org.loc[2010]
     h2_antr = h2_antr_org*scale_factor_antr
+    
     sh2 = SIMPLEH2(pam_dict=pam_dict ,ceds21=True)
-    sh2.calculate_concentrations(const_oh=0,h2_antr_emi=h2_antr,startyr=startyr,endyr=endyr)
+    sh2.calculate_concentrations(const_oh=0,startyr=startyr,endyr=endyr)
     plot_results()
     axs[1,0].plot([2010],df_budget.loc[model]['H2 estimated emissions [Tg/yr]'],'x', color=mcol)
     axs[0,1].plot([2010],df_budget.loc[model]['H2 atm prod [Tg/yr]'],'x', color=mcol)
