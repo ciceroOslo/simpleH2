@@ -51,7 +51,7 @@ model_list = df_budget.index
 #startyr = 1850
 #endyr = 2019
 
-h2_file = '../input/h2_antr_ceds17.csv'
+antr_file = '../input/h2_antr_ceds21.csv'
 ch4_file = '../input/ch4_historical.csv'
 bb_file = '../input/bb_emis_gfed.csv'
 nmvoc_file = '../input/nmvoc_emis_ssp245.csv'
@@ -63,7 +63,7 @@ endyr = 2019
 
 paths = {'meth_path': ch4_file,
          'nmvoc_path':nmvoc_file,
-         'co_file':h2_file,
+         'antr_file':antr_file,
          'bb_file':bb_file}
 
 #Specify nitrate fixation:
@@ -82,7 +82,7 @@ for m,model in enumerate(model_list):
                "tau_1": df_budget.loc[model]['H2 atm lifetime [yrs]'],
                "nit_fix": nit_fix}
                   
-    sh2 = SIMPLEH2(pam_dict=pam_dict ,paths=paths,ceds21=True)
+    sh2 = SIMPLEH2(pam_dict=pam_dict ,paths=paths)
     print(sh2.paths)
 
     #Scale only the anthropogenic emissions to match the estimated emissions in the models.

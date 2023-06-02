@@ -15,11 +15,9 @@ class SimpleH2DataPaths:
     Dataclass to hold paths to files that the SimpleH2 class uses
     """
 
-    meth_path: str = "/div/qbo/users/ragnhibs/Methane/INPUT/ch4_atm_cmip6_upd.txt"
-    nmvoc_path: str = (
-        "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_NMVOC_CEDS17.csv"
-    )
-    co_file: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
+    meth_path: str = "../input/ch4_historical.csv"
+    nmvoc_path: str = "../input/nmvoc_emis_ssp245.csv"
+    antr_file: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
     bb_file: str = "/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt"
 
     
@@ -140,7 +138,7 @@ class SIMPLEH2:
             Dataframe for hydrogen emissions from biomass burning
     """
 
-    def __init__(self, pam_dict=None, ceds21=True, paths=None):
+    def __init__(self, pam_dict=None, paths=None):
         self.pam_dict = check_numeric_pamset(
             {
                 "refyr": 2010,
@@ -174,7 +172,7 @@ class SIMPLEH2:
 
         self.h2_prod_ch4.columns = ["Emis"]
         self.h2_prod_ch4.index.name = "Year"
-        self._calc_h2_antr(ceds21)
+        self._calc_h2_antr()
         
         self.h2_bb_emis = calc_h2_bb_emis(self.paths.bb_file)
 
@@ -215,23 +213,14 @@ class SIMPLEH2:
         self.h2_prod_nmvoc = nmvoc_emis/nmvoc_emis.loc[self.pam_dict["refyr"]]*frac_voc
         self.h2_prod_nmvoc.index.name = "Year"
 
-    def _calc_h2_antr(self, ceds21=True):
-        #scaling_co = 0.47 * 2.0 / 28.0
-        #scaling_co = 0.34*2.0/28.0
-        
-        self.h2_antr = pd.read_csv(self.paths.co_file, index_col=0) * self.scaling_co
+    def _calc_h2_antr(self):
+        self.h2_antr = pd.read_csv(self.paths.antr_file, index_col=0) * self.scaling_co
         self.h2_antr.index.name = "Year"
 
     def scale_emissions_antr(self,tot_emis):
-        print(self.h2_antr)
-        print(self.h2_bb_emis.loc[2010])
-        print(self.pam_dict['nit_fix'])
-        print(tot_emis)
-        model_emis_antr = tot_emis - self.pam_dict['nit_fix'] - self.h2_bb_emis.loc[2010] 
-        print(model_emis_antr)
-        print(model_emis_antr)
+        model_emis_antr = tot_emis - self.pam_dict['nit_fix'] - self.h2_bb_emis.loc[2010]
         self.h2_antr = self.h2_antr/self.h2_antr.loc[2010]*model_emis_antr
-        print(self.h2_antr)
+
             
     def calculate_concentrations(self,const_oh=0,startyr=1850,endyr=2014):
         """
