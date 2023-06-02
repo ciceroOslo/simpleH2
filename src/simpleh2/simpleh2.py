@@ -20,8 +20,6 @@ class SimpleH2DataPaths:
         "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_NMVOC_CEDS17.csv"
     )
     co_file: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
-    co_file1: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
-    co_file2: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS21.csv"
     bb_file: str = "/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt"
 
     
@@ -94,17 +92,15 @@ def calc_ch4_lifetime_fact(year, anom_year=2000):
     return ch4lifetime_fact
 
 
-def calc_h2_bb_emis(
-        h2_bb_emis_temp,bb_emis_file):
+def calc_h2_bb_emis(bb_emis_file):
 
     """
-    Read in and make dataframe of biomass burning h2 data from gfed
+    Read in and make dataframe of biomass burning h2 emissions
 
     Parameters
     ----------
-    h2_bb_emis_temp : pd.DataFrame
-                  Dataframe template to fill in
-    gfedfile : str
+  
+    bb_emis_file : str
                Path to gfed data file
 
     Returns
@@ -112,13 +108,10 @@ def calc_h2_bb_emis(
     pd.DataFrame
                 Inread biomass burning emissions
     """
+    h2_bb_emis = pd.read_csv(bb_emis_file, index_col=0)
+    h2_bb_emis.index.name = "Year"
     
-   
-    h2_bb_emis_org = pd.read_csv(bb_emis_file, index_col=0)
-    h2_bb_emis_org.index.name = "Year"
-    h2_bb_emis_temp.index.name = "Year"
-    h2_bb_emis_temp["Emis"][:] = h2_bb_emis_org["Emis"].mean()
-    return h2_bb_emis_temp.loc[:1996].append(h2_bb_emis_org)
+    return h2_bb_emis
 
 
 class SIMPLEH2:
@@ -183,7 +176,7 @@ class SIMPLEH2:
         self.h2_prod_ch4.index.name = "Year"
         self._calc_h2_antr(ceds21)
         
-        self.h2_bb_emis = calc_h2_bb_emis(self.h2_antr.copy() * 0.0,self.paths.bb_file)
+        self.h2_bb_emis = calc_h2_bb_emis(self.paths.bb_file)
 
         print(self)
        
@@ -206,17 +199,20 @@ class SIMPLEH2:
         # Sum NMVOC used in the model 2010 and 1850.
         # 764.1 vs 648.87, increase since pre-ind: 115.23
         # Increase in total VOC CEDS: 10.77 to 161.06, increase of 150.3
-        frac_voc_used = 115.23 / 150.3
-        nat_emis = 648.87 - 10.77 * frac_voc_used  # Used in the model
+
+        
+        #frac_voc_used = 115.23 / 150.3
+        #nat_emis = 648.87 - 10.77 * frac_voc_used  # Used in the model
         
         nmvoc_emis = pd.read_csv(self.paths.nmvoc_path, index_col=0)
     
-        nmvoc_emis = nmvoc_emis * frac_voc_used
-        self.h2_prod_nmvoc = (
-            (nmvoc_emis + nat_emis)
-            / (nat_emis + nmvoc_emis.loc[self.pam_dict["refyr"]])
-            * frac_voc
-        )
+        #nmvoc_emis = nmvoc_emis * frac_voc_used
+        #self.h2_prod_nmvoc = (
+        #    (nmvoc_emis + nat_emis)
+        #    / (nat_emis + nmvoc_emis.loc[self.pam_dict["refyr"]])
+        #    * frac_voc
+        #)
+        self.h2_prod_nmvoc = nmvoc_emis/nmvoc_emis.loc[self.pam_dict["refyr"]]*frac_voc
         self.h2_prod_nmvoc.index.name = "Year"
 
     def _calc_h2_antr(self, ceds21=True):

@@ -53,6 +53,8 @@ model_list = df_budget.index
 
 h2_file = '../input/h2_antr_ceds17.csv'
 ch4_file = '../input/ch4_historical.csv'
+bb_file = '../input/bb_emis_gfed.csv'
+nmvoc_file = '../input/nmvoc_emis_ssp245.csv'
 startyr = 1850
 endyr = 2019
 
@@ -60,9 +62,9 @@ endyr = 2019
 #Input filepaths to be used:
 
 paths = {'meth_path': ch4_file,
-         'nmvoc_path':"/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_NMVOC_CEDS17.csv",
+         'nmvoc_path':nmvoc_file,
          'co_file':h2_file,
-         'bb_file':  "/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt"}
+         'bb_file':bb_file}
 
 #Specify nitrate fixation:
 nit_fix = 9.0
