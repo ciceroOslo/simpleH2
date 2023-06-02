@@ -22,7 +22,7 @@ class SimpleH2DataPaths:
     co_file: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
     co_file1: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv"
     co_file2: str = "/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS21.csv"
-    gfed_file: str = "/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt"
+    bb_file: str = "/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt"
 
     
 def check_numeric_pamset(required, pamset):
@@ -95,7 +95,7 @@ def calc_ch4_lifetime_fact(year, anom_year=2000):
 
 
 def calc_h2_bb_emis(
-    h2_bb_emis_temp): 
+        h2_bb_emis_temp,bb_emis_file):
 
     """
     Read in and make dataframe of biomass burning h2 data from gfed
@@ -113,7 +113,7 @@ def calc_h2_bb_emis(
                 Inread biomass burning emissions
     """
     
-    bb_emis_file="/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt"
+   
     h2_bb_emis_org = pd.read_csv(bb_emis_file, index_col=0)
     h2_bb_emis_org.index.name = "Year"
     h2_bb_emis_temp.index.name = "Year"
@@ -183,7 +183,7 @@ class SIMPLEH2:
         self.h2_prod_ch4.index.name = "Year"
         self._calc_h2_antr(ceds21)
         
-        self.h2_bb_emis = calc_h2_bb_emis(self.h2_antr.copy() * 0.0)
+        self.h2_bb_emis = calc_h2_bb_emis(self.h2_antr.copy() * 0.0,self.paths.bb_file)
 
         print(self)
        
@@ -222,11 +222,21 @@ class SIMPLEH2:
     def _calc_h2_antr(self, ceds21=True):
         #scaling_co = 0.47 * 2.0 / 28.0
         #scaling_co = 0.34*2.0/28.0
-        print( self.paths.co_file)
-        exit()
+        
         self.h2_antr = pd.read_csv(self.paths.co_file, index_col=0) * self.scaling_co
         self.h2_antr.index.name = "Year"
 
+    def scale_emissions_antr(self,tot_emis):
+        print(self.h2_antr)
+        print(self.h2_bb_emis.loc[2010])
+        print(self.pam_dict['nit_fix'])
+        print(tot_emis)
+        model_emis_antr = tot_emis - self.pam_dict['nit_fix'] - self.h2_bb_emis.loc[2010] 
+        print(model_emis_antr)
+        print(model_emis_antr)
+        self.h2_antr = self.h2_antr/self.h2_antr.loc[2010]*model_emis_antr
+        print(self.h2_antr)
+            
     def calculate_concentrations(self,const_oh=0,startyr=1850,endyr=2014):
         """
         Calculate hydrogen concentrations
