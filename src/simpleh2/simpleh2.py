@@ -190,12 +190,12 @@ class SIMPLEH2:
         
     def _prepare_concentrations(self):
         data_conc = pd.read_csv(self.paths.meth_path, index_col=0)
+                
         data_conc.index.name = "Year"
         data_conc.columns = ["CH4"]
 
         # prepare concentration:
         self.conc_ch4 = data_conc.copy()
-
         self.conc_h2 = data_conc.copy()
 
         self.conc_h2.columns = ["H2"]

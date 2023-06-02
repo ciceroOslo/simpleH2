@@ -52,13 +52,14 @@ model_list = df_budget.index
 #endyr = 2019
 
 h2_file = '../input/h2_antr_ceds17.csv'
+ch4_file = '../input/ch4_historical.csv'
 startyr = 1850
 endyr = 2019
 
 
 #Input filepaths to be used:
 
-paths = {'meth_path': "/div/qbo/users/ragnhibs/Methane/INPUT/ch4_atm_cmip6_upd.txt",
+paths = {'meth_path': ch4_file,
          'nmvoc_path':"/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_NMVOC_CEDS17.csv",
          'co_file':h2_file,
          'bb_file':  "/div/qbo/hydrogen/OsloCTM3/lilleH2/emission/gfed_h2.txt"}
