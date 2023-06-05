@@ -26,4 +26,6 @@ h2_bb_emis_out.to_csv('../input/bb_emis_gfed.csv')
 h2_bb_emis_out["Emis"][:] = h2_bb_emis_org["Emis"].mean()
 h2_bb_emis_out.to_csv('../input/bb_emis_constant.csv')
 
+h2_bb_emis_out["Emis"][:] = 0.0
+h2_bb_emis_out.to_csv('../input/bb_emis_zero.csv')
 plt.show()

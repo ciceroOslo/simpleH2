@@ -60,7 +60,6 @@ endyr = 2019
 
 
 #Input filepaths to be used:
-
 paths = {'meth_path': ch4_file,
          'nmvoc_path':nmvoc_file,
          'antr_file':antr_file,

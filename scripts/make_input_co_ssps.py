@@ -1,6 +1,6 @@
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
 def read_inputfile(input_file, cut_years=False, year_start=1750, year_end=2100):
     """
@@ -46,56 +46,24 @@ scen_list = {'ssp119':'SSP1-1.9',
              'ssp585':'SSP5-8.5'}
 
 for scen in scen_list:
-    filename = '/div/amoc/CSCM/SCM_Linux_v2019/RCMIP/input/'+scen+'_conc_RCMIP.txt'
+    filename = '/div/amoc/CSCM/SCM_Linux_v2019/RCMIP/input/'+scen+'_em_RCMIP.txt'
     
     df_input = read_inputfile(filename)
-    print(df_input['CH4'].loc[1750:2100])
-    plt.plot(df_input['CH4'].loc[1750:2100],label=scen_list[scen])
-
-    out_field = df_input['CH4'].loc[1750:2100]
+    plt.plot(df_input['CO'].loc[1750:2100],label=scen_list[scen])
+    
+    out_field = df_input['CO'].loc[1750:2100]
     out_field.name = "Emis"
     out_field.index.name="Years"
-    out_field.to_csv('../input/ch4_conc_'+scen+'.csv')
+    out_field.to_csv('../input/co_emis_'+scen+'.csv')
+    
 
-#Lan, X., K.W. Thoning, and E.J. Dlugokencky: Trends in globally-averaged CH4, N2O, and SF6 determined from NOAA Global Monitoring Laboratory measurements. Version 2023-05, https://doi.org/10.15138/P8XG-AA10
+fileceds17 = '/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS17.csv'
+fileceds21 = '/div/qbo/utrics/OsloCTM3/plot/emissions_csv/emis_CO_CEDS21.csv'
+emis_ceds17 = pd.read_csv(fileceds17,index_col=0)
+emis_ceds21 = pd.read_csv(fileceds21,index_col=0)
 
-df_obs_ch4 = pd.read_csv('/div/qbo/users/ragnhibs/Hydrogen/Scenarios/historical/ch4_annmean_gl.csv',header=60,index_col=0)
-print(df_obs_ch4)
-
-plt.plot(df_obs_ch4['mean'],color='black',label='NOAA')
-
-#plt.xlim([1900,2100])
-#plt.xlim([1970,2020])
-plt.ylabel('Methane concentration [ppb]')
-plt.legend()
-
-
-df_obs_ch4_extended = df_input['CH4'].loc[:df_obs_ch4.index[0]-1]
-print(df_obs_ch4_extended)
-df_obs_ch4_extended.index.name = "Year"
-df_obs_ch4_extended.columns = ["CH4"]
-
-df_obs_ch4["CH4"]=df_obs_ch4['mean']
-df_obs_ch4.index.name="Year"
-
-
-print(df_obs_ch4_extended)
-print(df_obs_ch4["CH4"])
-print(pd.concat([df_obs_ch4_extended,df_obs_ch4["CH4"]]))
-
-df_obs_ch4_out = pd.concat([df_obs_ch4_extended,df_obs_ch4["CH4"]])
-
-plt.plot(df_obs_ch4_out,color='Pink')
-
-print(df_obs_ch4['mean'])
-
-
-
-df_obs_ch4_out.to_csv('../input/ch4_historical.csv')
-
-
-
-
+plt.plot(emis_ceds17,label='CEDS17',color='red')
+plt.plot(emis_ceds21,label='CEDS21',color='blue')
 
 
 plt.show()
