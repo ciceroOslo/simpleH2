@@ -3,6 +3,7 @@ SIMPLEH2
 """
 import logging
 import os
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -16,7 +17,6 @@ class SimpleH2DataPaths:
     """
     Dataclass to hold paths to files that the SimpleH2 class uses
     """
-
     meth_path: str = os.path.join(
         os.path.dirname(__file__), "..", "..", "input", "ch4_historical.csv"
     )
@@ -125,7 +125,7 @@ def calc_h2_bb_emis(bb_emis_file):
     return h2_bb_emis
 
 
-class SIMPLEH2:
+class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
     """
     Simple hydrogen concentration modelling class
 
@@ -149,7 +149,6 @@ class SIMPLEH2:
             or anthropogenic or biomass burning related hydrogen emissions
             (scaled from CO), respectively
     """
-
     def __init__(self, pam_dict=None, paths=None):
         self.pam_dict = check_numeric_pamset(
             {
@@ -165,21 +164,20 @@ class SIMPLEH2:
         )
         if paths is None:
             paths = {}
-
         # frac numbers from Ehhalt and Roherer 2009
         frac_voc = 18.0 / 41.1 * self.pam_dict["prod_ref"]
         print(frac_voc)
         frac_ch4 = (1 - frac_voc / self.pam_dict["prod_ref"]) * self.pam_dict[
             "prod_ref"
         ]
+        self.paths = SimpleH2DataPaths(**paths)
+
 
         self.paths = SimpleH2DataPaths(**paths)
 
         self._prepare_concentrations()
 
         self._initialise_emis_with_nmvoc(frac_voc=frac_voc)
-        print(self.conc_ch4.index)
-        print(self.h2_prod_emis.index)
 
         self.h2_prod_emis["h2_prod_ch4"] = (
             self.conc_ch4 / self.conc_ch4.loc[self.pam_dict["refyr"]] * frac_ch4
@@ -191,7 +189,6 @@ class SIMPLEH2:
 
     def _prepare_concentrations(self):
         data_conc = pd.read_csv(self.paths.meth_path, index_col=0)
-
         data_conc.index.name = "Year"
         data_conc.columns = ["CH4"]
 
@@ -201,6 +198,7 @@ class SIMPLEH2:
 
         self.conc_h2.columns = ["H2"]
         self.conc_h2["H2"] = -1
+
 
     def _initialise_emis_with_nmvoc(self, frac_voc):
         # Natural emis NMVOC:
@@ -239,7 +237,6 @@ class SIMPLEH2:
         ----------
         tot_emis : float
                    Total emissions to scale to
-
         """
         model_emis_antr = (
             tot_emis
@@ -267,6 +264,7 @@ class SIMPLEH2:
                   Startyear for concentrations calculations
         endyr : int
                 Endyear for concentrations calculations
+
         """
         tot_prod = self.h2_prod_emis.loc[startyr:endyr].sum(axis=1).values
         print(self.pam_dict)  # = 9.0
