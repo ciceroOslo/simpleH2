@@ -3,7 +3,6 @@ SIMPLEH2
 """
 import logging
 import os
-
 from dataclasses import dataclass
 
 import numpy as np
@@ -17,6 +16,7 @@ class SimpleH2DataPaths:
     """
     Dataclass to hold paths to files that the SimpleH2 class uses
     """
+
     meth_path: str = os.path.join(
         os.path.dirname(__file__), "..", "..", "input", "ch4_historical.csv"
     )
@@ -149,6 +149,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
             or anthropogenic or biomass burning related hydrogen emissions
             (scaled from CO), respectively
     """
+
     def __init__(self, pam_dict=None, paths=None):
         self.pam_dict = check_numeric_pamset(
             {
@@ -171,7 +172,6 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
             "prod_ref"
         ]
         self.paths = SimpleH2DataPaths(**paths)
-
 
         self.paths = SimpleH2DataPaths(**paths)
 
@@ -198,7 +198,6 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
 
         self.conc_h2.columns = ["H2"]
         self.conc_h2["H2"] = -1
-
 
     def _initialise_emis_with_nmvoc(self, frac_voc):
         # Natural emis NMVOC:
