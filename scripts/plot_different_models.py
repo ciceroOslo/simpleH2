@@ -1,19 +1,22 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 import requests
 import io
-
-sys.path.append('/div/no-backup/users/ragnhibs/simpleH2/simpleH2/src/simpleh2/')
 
 from simpleh2 import SIMPLEH2
 
 def plot_results():
     #Function that plot input and results for each model
-    axs[0,0].plot(sh2.h2_antr,'-', color=mcol, linewidth =1.5,label=model)
-    axs[0,1].plot(sh2.h2_prod_ch4+sh2.h2_prod_nmvoc,'-',color=mcol, linewidth =1.5,label=model)
-    axs[1,0].plot(sh2.h2_antr+sh2.h2_bb_emis+nit_fix,'-', color=mcol, linewidth =1.5,label=model)
+    axs[0,0].plot(sh2.h2_prod_emis["h2_antr"],'-', color=mcol, linewidth =1.5,label=model)
+    axs[0,1].plot(sh2.h2_prod_emis["h2_prod_ch4"]+
+                  sh2.h2_prod_emis["h2_prod_nmvoc"],
+                  '-',color=mcol, linewidth =1.5,label=model)
+    
+    axs[1,0].plot(sh2.h2_prod_emis["h2_antr"]
+                  + sh2.h2_prod_emis["h2_bb_emis"]
+                  +nit_fix,'-', color=mcol, linewidth=1.5,label=model)
+    
     axs[1,1].plot(sh2.conc_h2,'-', linewidth =1.5,color=mcol,label=model)
 
 def read_model_results():
@@ -88,7 +91,7 @@ for m,model in enumerate(model_list):
     sh2.scale_emissions_antr(df_budget.loc[model]['H2 estimated emissions [Tg/yr]'])
 
     #Calculate the H2 concentrations
-    sh2.calculate_concentrations(const_oh=0,startyr=startyr,endyr=endyr)
+    sh2.calculate_concentrations(const_oh=1,startyr=startyr,endyr=endyr)
 
     #Plot the results:
     plot_results()

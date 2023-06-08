@@ -160,7 +160,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
                 "tau_1": 7.2,
                 "nit_fix": 5,
                 "scaling_co": 0.34 * 2.0 / 28.0,
-                "natvoc":600
+                "natvoc":600.0
             },
             pam_dict,
         )
