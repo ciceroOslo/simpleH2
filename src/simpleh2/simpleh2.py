@@ -160,6 +160,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
                 "tau_1": 7.2,
                 "nit_fix": 5,
                 "scaling_co": 0.34 * 2.0 / 28.0,
+                "natvoc":600
             },
             pam_dict,
         )
@@ -208,7 +209,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         # frac_voc_used = 115.23 / 150.3
         # nat_emis = 648.87 - 10.77 * frac_voc_used  # Used in the model
 
-        nmvoc_emis = pd.read_csv(self.paths.nmvoc_path, index_col=0)
+        nmvoc_emis = pd.read_csv(self.paths.nmvoc_path, index_col=0) + self.pam_dict["natvoc"]
 
         # nmvoc_emis = nmvoc_emis * frac_voc_used
         # self.h2_prod_nmvoc = (
