@@ -41,13 +41,26 @@ def read_model_results():
     df_budget = pd.concat([df_budget,df_budget_uci])
     return df_budget
 
+def read_model_results_concentrations():
+    #Read budget values from github: 2010 values for the different models.    
+    url = "https://raw.githubusercontent.com/ciceroOslo/Hydrogen_GWP/main/input/H2_surfconc.txt"
+    s = requests.get(url).content
+    df_surfconc = pd.read_csv(io.StringIO(s.decode('utf-8')),sep=';',index_col=0)
+    df_surfconc['UCI'] = df_surfconc['UKCA']*0.0
+    print(df_surfconc)
+    return df_surfconc.loc['CTRL']
 
+
+    
 #Read model results to be used in the simple hydrogen model.    
 df_budget = read_model_results()
-    
+print(df_budget)
+
 color_list = ['C0','C1','C2','C3','C4','C5','C6','C7']
 model_list = df_budget.index
 
+df_surfconc = read_model_results_concentrations()
+print(df_surfconc)
 
 
 #h2_file = '../input/h2_antr_ceds17.csv'
@@ -98,7 +111,7 @@ for m,model in enumerate(model_list):
     
     axs[1,0].plot([2010],df_budget.loc[model]['H2 estimated emissions [Tg/yr]'],'x', color=mcol)
     axs[0,1].plot([2010],df_budget.loc[model]['H2 atm prod [Tg/yr]'],'x', color=mcol)
-
+    axs[1,1].plot([2010],df_surfconc.loc[model],'x',color=mcol)
 
 axs[1,0].set_xlabel("Years")
 axs[1,1].set_xlabel("Years")
