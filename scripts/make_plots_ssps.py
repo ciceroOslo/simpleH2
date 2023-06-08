@@ -1,9 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 
-sys.path.append('/div/no-backup/users/ragnhibs/simpleH2/simpleH2/src/simpleh2/')
 
 from simpleh2 import SIMPLEH2
 
@@ -64,7 +62,6 @@ for sc,scen in enumerate(scen_list):
 
     sh2_1.scale_emissions_antr(31.58)
 
-
     sh2_1.calculate_concentrations(const_oh=1,startyr=startyr,endyr=endyr)
     #iso1 = sh2.calc_isotope_timeseries()
     #iso2 = sh2_test_2.calc_isotope_timeseries(const_oh=1)
@@ -76,27 +73,23 @@ for sc,scen in enumerate(scen_list):
 
     #Calculate totals:
     
-    tot_prod = (sh2_1.h2_antr.loc[startyr:endyr] +
-                sh2_1.h2_bb_emis.loc[startyr:endyr] +
-                sh2_1.h2_prod_ch4.loc[startyr:endyr] +
-                sh2_1.h2_prod_nmvoc.loc[startyr:endyr] )
-    tot_emis = (sh2_1.h2_antr.loc[startyr:endyr] +
-                sh2_1.h2_bb_emis.loc[startyr:endyr] +
+    tot_prod = sh2_1.h2_prod_emis.loc[startyr:endyr].sum(axis=1) + nit_fix
+
+    tot_emis = (sh2_1.h2_prod_emis["h2_antr"].loc[startyr:endyr] +
+                sh2_1.h2_prod_emis["h2_bb_emis"].loc[startyr:endyr] +
                 nit_fix)
     
-    tot_atm_prod = (sh2_1.h2_prod_ch4.loc[startyr:endyr] +
-                    sh2_1.h2_prod_nmvoc.loc[startyr:endyr])
-    
-    
-    
+    tot_atm_prod = (sh2_1.h2_prod_emis["h2_prod_ch4"].loc[startyr:endyr] +
+                    sh2_1.h2_prod_emis["h2_prod_nmvoc"].loc[startyr:endyr])
+                         
     
     #Plot emissions
-    axs[0,0].plot(sh2_1.h2_antr,'--', linewidth=lw,color=scen_color[sc])
+    axs[0,0].plot(sh2_1.h2_prod_emis["h2_antr"],'--', linewidth=lw,color=scen_color[sc])
     axs[0,0].plot(tot_emis,'-', linewidth=lw,color=scen_color[sc])
 
     #Plot production
-    axs[0,1].plot(sh2_1.h2_prod_ch4,'-', linewidth=lw,color=scen_color[sc])
-    axs[0,1].plot(sh2_1.h2_prod_nmvoc,'--', linewidth=lw,color=scen_color[sc])
+    axs[0,1].plot(sh2_1.h2_prod_emis["h2_prod_ch4"],'-', linewidth=lw,color=scen_color[sc])
+    axs[0,1].plot(sh2_1.h2_prod_emis["h2_prod_nmvoc"],'--', linewidth=lw,color=scen_color[sc])
 
     #Plot total production and emissions.
     axs[1,0].plot(tot_prod,'-', linewidth=lw,color=scen_color[sc])

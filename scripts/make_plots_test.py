@@ -1,12 +1,40 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
-
-sys.path.append('/div/no-backup/users/ragnhibs/simpleH2/simpleH2/src/simpleh2/')
 
 from simpleh2 import SIMPLEH2
 
+
+def plot_results():
+    lw = 1
+    tot_prod = sh2_1.h2_prod_emis.loc[startyr:endyr].sum(axis=1) + nit_fix
+
+    tot_emis = (sh2_1.h2_prod_emis["h2_antr"].loc[startyr:endyr] +
+                sh2_1.h2_prod_emis["h2_bb_emis"].loc[startyr:endyr] +
+                nit_fix)
+    
+    tot_atm_prod = (sh2_1.h2_prod_emis["h2_prod_ch4"].loc[startyr:endyr] +
+                    sh2_1.h2_prod_emis["h2_prod_nmvoc"].loc[startyr:endyr])
+                         
+    
+    #Plot emissions
+    axs[0,0].plot(sh2_1.h2_prod_emis["h2_antr"],'--', linewidth=lw,label='H2 antr.')
+    axs[0,0].plot(sh2_1.h2_prod_emis["h2_bb_emis"],'-', linewidth =lw,label='BB. em.')
+    axs[0,0].plot([startyr,endyr],[nit_fix,nit_fix],'-', linewidth =lw,label='Nitrate fixation (ocean and land)')
+    axs[0,0].plot(tot_emis,'-', linewidth=lw,label='Tot emis')
+
+    #Plot production
+    axs[0,1].plot(sh2_1.h2_prod_emis["h2_prod_ch4"],'-', linewidth=lw,label='H2 prod CH4')
+    axs[0,1].plot(sh2_1.h2_prod_emis["h2_prod_nmvoc"],'--', linewidth=lw,label='H2 prod NMVOC')
+
+    #Plot total production and emissions.
+    axs[1,0].plot(tot_prod,'-', linewidth=lw,label='Total production')
+    axs[1,0].plot(tot_atm_prod,'--', linewidth=lw,label='Total atm. production')
+    axs[1,0].plot(tot_emis,'--', linewidth=lw,label='Total emissions')
+    #Plot concentrations
+    axs[1,1].plot(sh2_1.conc_h2,'-', linewidth=lw,label='Concentration')
+
+    
 startyr = 1850
 endyr = 2019
 antr_file = '../input/h2_antr_ceds21.csv'
@@ -47,52 +75,30 @@ print('Done calculations!')
 
 fig, axs = plt.subplots(nrows=2,ncols=2,sharex=False,sharey=False,squeeze=True,figsize=(12,10))
 
-#Plot production/emissions:
-axs[0,0].plot(sh2_1.h2_antr,'-', linewidth =2,label='Anthr. em.')
-axs[0,0].plot(sh2_1.h2_bb_emis,'-', linewidth =2,label='BB. em.')
-axs[0,0].plot([startyr,endyr],[nit_fix,nit_fix],'-', linewidth =2,label='Nitrate fixation (ocean and land)')
-axs[0,0].plot(sh2_1.h2_prod_ch4,'-', linewidth =2,label='Prod (ch4)')
-axs[0,0].plot(sh2_1.h2_prod_nmvoc,'-', linewidth =2,label='Prod (nmvoc)')
-#axs[0,0].plot(h2_prod_ch4_alt,'--', linewidth =2,label='Prod (ch4) alt')
-axs[0,0].set_xlabel("Years")
-axs[0,0].set_ylabel("Emissions/Production [Tg/yr]")
-axs[0,0].set_title('H2')
+plot_results()
 axs[0,0].legend()
+axs[1,0].legend()
+axs[0,1].legend()
+axs[1,1].legend()
 
 
+#Plot production/emissions:
+axs[0,0].set_xlabel("Years")
+axs[0,0].set_ylabel("Emissions [Tg/yr]")
+axs[0,0].set_title('H2')
 
-tot_prod = sh2_1.h2_antr.loc[startyr:endyr] + sh2_1.h2_bb_emis.loc[startyr:endyr] + sh2_1.h2_prod_ch4.loc[startyr:endyr] +sh2_1.h2_prod_nmvoc.loc[startyr:endyr] 
-print(tot_prod.index.values)
-
-tot_emis = sh2_1.h2_antr.loc[startyr:endyr] + sh2_1.h2_bb_emis.loc[startyr:endyr] + nit_fix
-tot_atm_prod = sh2_1.h2_prod_ch4.loc[startyr:endyr] +sh2_1.h2_prod_nmvoc.loc[startyr:endyr]
-
-
-
-#Plot total production and emissions.
-axs[0,1].plot(tot_prod,'-', linewidth =2,label='Total production')
-#axs[0,1].plot(startyr,prod_pre_ind,'d',color='C0')
-axs[0,1].plot(tot_atm_prod,'-', linewidth =2,label='Total atm. production')
-axs[0,1].plot(tot_emis,'-', linewidth =2,label='Total emissions')
+axs[1,1].set_xlabel("Years")
+axs[1,1].set_ylabel("H2 [ppb]")
 
 #OsloCTM check:
 pre_ind_conc_ctm = 327.0
 prod_pre_ind = 32.5
 emis_pre_ind = 18.32
-axs[0,1].plot([1850,2010],[prod_pre_ind,56.3],'x', linewidth =2,label='OsloCTM')
-axs[0,1].plot([1850,2010],[emis_pre_ind,31.6],'x', linewidth =2,label='OsloCTM')
+axs[1,0].plot([1850,2010],[prod_pre_ind,56.3],'x', linewidth =2,label='OsloCTM')
+axs[1,0].plot([1850,2010],[emis_pre_ind,31.6],'x', linewidth =2,label='OsloCTM')
 
-axs[1,0].plot([1850],[pre_ind_conc_ctm],'x', linewidth =2,label='OsloCTM')
 
-axs[0,1].set_ylim(bottom=0)
-axs[0,1].legend()
-
-#axs[1,0].plot(sh2.conc_h2,'-', linewidth =2,label='Concentration')
-axs[1,0].plot(sh2_1.conc_h2,'-', linewidth =2,label='Concentration')
-#axs[1,0].set_xlim([startyr,endyear])
-axs[1,0].set_xlabel("Years")
-axs[1,0].set_ylabel("H2 [ppb]")
-
+axs[1,1].plot([1850],[pre_ind_conc_ctm],'x', linewidth =2,label='OsloCTM')
 
 xlim = [startyr,endyr]
 axs[0,0].set_xlim(xlim)
@@ -100,5 +106,15 @@ axs[1,0].set_xlim(xlim)
 axs[0,1].set_xlim(xlim)
 axs[1,1].set_xlim(xlim)
 
-
 plt.show()
+exit()
+
+
+
+
+
+
+
+
+
+

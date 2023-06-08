@@ -1,19 +1,22 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import sys
 import requests
 import io
-
-sys.path.append('/div/no-backup/users/ragnhibs/simpleH2/simpleH2/src/simpleh2/')
 
 from simpleh2 import SIMPLEH2
 
 def plot_results():
     #Function that plot input and results for each model
-    axs[0,0].plot(sh2.h2_antr,'-', color=mcol, linewidth =1.5,label=model)
-    axs[0,1].plot(sh2.h2_prod_ch4+sh2.h2_prod_nmvoc,'-',color=mcol, linewidth =1.5,label=model)
-    axs[1,0].plot(sh2.h2_antr+sh2.h2_bb_emis+nit_fix,'-', color=mcol, linewidth =1.5,label=model)
+    axs[0,0].plot(sh2.h2_prod_emis["h2_antr"],'-', color=mcol, linewidth =1.5,label=model)
+    axs[0,1].plot(sh2.h2_prod_emis["h2_prod_ch4"]+
+                  sh2.h2_prod_emis["h2_prod_nmvoc"],
+                  '-',color=mcol, linewidth =1.5,label=model)
+    
+    axs[1,0].plot(sh2.h2_prod_emis["h2_antr"]
+                  + sh2.h2_prod_emis["h2_bb_emis"]
+                  +nit_fix,'-', color=mcol, linewidth=1.5,label=model)
+    
     axs[1,1].plot(sh2.conc_h2,'-', linewidth =1.5,color=mcol,label=model)
 
 def read_model_results():
@@ -38,13 +41,26 @@ def read_model_results():
     df_budget = pd.concat([df_budget,df_budget_uci])
     return df_budget
 
+def read_model_results_concentrations():
+    #Read budget values from github: 2010 values for the different models.    
+    url = "https://raw.githubusercontent.com/ciceroOslo/Hydrogen_GWP/main/input/H2_surfconc.txt"
+    s = requests.get(url).content
+    df_surfconc = pd.read_csv(io.StringIO(s.decode('utf-8')),sep=';',index_col=0)
+    df_surfconc['UCI'] = df_surfconc['UKCA']*0.0
+    print(df_surfconc)
+    return df_surfconc.loc['CTRL']
 
+
+    
 #Read model results to be used in the simple hydrogen model.    
 df_budget = read_model_results()
-    
+print(df_budget)
+
 color_list = ['C0','C1','C2','C3','C4','C5','C6','C7']
 model_list = df_budget.index
 
+df_surfconc = read_model_results_concentrations()
+print(df_surfconc)
 
 
 #h2_file = '../input/h2_antr_ceds17.csv'
@@ -88,14 +104,14 @@ for m,model in enumerate(model_list):
     sh2.scale_emissions_antr(df_budget.loc[model]['H2 estimated emissions [Tg/yr]'])
 
     #Calculate the H2 concentrations
-    sh2.calculate_concentrations(const_oh=0,startyr=startyr,endyr=endyr)
+    sh2.calculate_concentrations(const_oh=1,startyr=startyr,endyr=endyr)
 
     #Plot the results:
     plot_results()
     
     axs[1,0].plot([2010],df_budget.loc[model]['H2 estimated emissions [Tg/yr]'],'x', color=mcol)
     axs[0,1].plot([2010],df_budget.loc[model]['H2 atm prod [Tg/yr]'],'x', color=mcol)
-
+    axs[1,1].plot([2010],df_surfconc.loc[model],'x',color=mcol)
 
 axs[1,0].set_xlabel("Years")
 axs[1,1].set_xlabel("Years")
