@@ -102,6 +102,7 @@ def calc_ch4_lifetime_fact(
     lifetime = lifetime.loc[startyr:endyear]
     lifetime_ref = lifetime["Lifetime"].loc[anom_year]
     ch4lifetime_fact.loc[lifetime.index] = lifetime / lifetime_ref
+       
     return ch4lifetime_fact
 
 
@@ -268,7 +269,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
                 Endyear for concentrations calculations
 
         """
-        tot_prod = self.h2_prod_emis.loc[startyr:endyr].sum(axis=1).values
+        tot_prod = self.h2_prod_emis.loc[startyr:endyr+1].sum(axis=1).values
         print(self.pam_dict)  # = 9.0
 
         # Factor converting emissions to mixing ratios (Tg CH4/ppbv)
@@ -283,11 +284,12 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         beta_h2 = 5.1352e9 * 2.0 / 28.97 * 1e-9  # 2.84
 
         if const_oh != 1:
-            ch4_lifetime_fact = calc_ch4_lifetime_fact(np.arange(startyr, endyr))
+            ch4_lifetime_fact = calc_ch4_lifetime_fact(np.arange(startyr, endyr+1))
+            
         else:
             q = 1.0 / self.pam_dict["tau_1"] + 1 / self.pam_dict["tau_2"]
         conc_local = self.pam_dict["pre_ind_conc"]
-        for i, y in enumerate(np.arange(startyr, endyr)):
+        for i, y in enumerate(np.arange(startyr, endyr+1)):
             if const_oh != 1:
                 q = (
                     1.0
@@ -342,7 +344,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
             },
             parameter_dict,
         )
-        tot_prod = self.h2_prod_emis.loc[startyr:endyr].sum(axis=1).values
+        tot_prod = self.h2_prod_emis.loc[startyr:endyr+1].sum(axis=1).values
         self.pam_dict["nit_fix"] = 5.0
         frac_sink = 0.943 * self.pam_dict["tau_1"] / (
             self.pam_dict["tau_1"] + self.pam_dict["tau_2"]
@@ -350,8 +352,8 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
             self.pam_dict["tau_1"] + self.pam_dict["tau_2"]
         )
         if const_oh != 1:
-            ch4_lifetime_fact = calc_ch4_lifetime_fact(np.arange(startyr, endyr))
-        for i, y in enumerate(np.arange(startyr, endyr)):
+            ch4_lifetime_fact = calc_ch4_lifetime_fact(np.arange(startyr, endyr+1))
+        for i, y in enumerate(np.arange(startyr, endyr+1)):
             emis = tot_prod[i] + self.pam_dict["nit_fix"]
             iso_sources = (
                 (pam_dict["iso_h2_antr"] * self.h2_prod_emis["h2_antr"].loc[y] / emis)
