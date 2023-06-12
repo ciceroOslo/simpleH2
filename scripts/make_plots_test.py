@@ -66,7 +66,7 @@ sh2_1 = SIMPLEH2(pam_dict=pam_dict_osloctm,paths=paths)
 sh2_1.scale_emissions_antr(31.58)
 
 
-sh2_1.calculate_concentrations(const_oh=1,startyr=startyr,endyr=endyr)
+sh2_1.calculate_concentrations(const_oh=0,startyr=startyr,endyr=endyr)
 #iso1 = sh2.calc_isotope_timeseries()
 #iso2 = sh2_test_2.calc_isotope_timeseries(const_oh=1)
 
@@ -76,6 +76,13 @@ print('Done calculations!')
 fig, axs = plt.subplots(nrows=2,ncols=2,sharex=False,sharey=False,squeeze=True,figsize=(12,10))
 
 plot_results()
+
+sh2_1.calculate_concentrations(const_oh=1,startyr=startyr,endyr=endyr)
+axs[1,1].plot(sh2_1.conc_h2,'--', linewidth=1,label='const_oh=1')
+
+
+print(sh2_1.conc_h2)
+
 axs[0,0].legend()
 axs[1,0].legend()
 axs[0,1].legend()
@@ -101,11 +108,12 @@ axs[1,0].plot([1850,2010],[emis_pre_ind,31.6],'x', linewidth =2,label='OsloCTM')
 axs[1,1].plot([1850],[pre_ind_conc_ctm],'x', linewidth =2,label='OsloCTM')
 
 xlim = [startyr,endyr]
+xlim = [1980,endyr]
 axs[0,0].set_xlim(xlim)
 axs[1,0].set_xlim(xlim)
 axs[0,1].set_xlim(xlim)
 axs[1,1].set_xlim(xlim)
-
+axs[1,1].set_ylim(bottom=500)
 plt.show()
 exit()
 
