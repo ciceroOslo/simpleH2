@@ -72,7 +72,7 @@ def check_numeric_pamset(required, pamset):
 def calc_ch4_lifetime_fact(
     year,
     anom_year=2000,
-    path="/div/qbo/users/ragnhibs/Methane/OH/OsloCTM3/ForBoxModel/",
+    path=os.path.join(os.path.dirname(__file__), "..", "..", "input"),
 ):
     """
     Calculate methane lifetime factor for timeseries of years
@@ -98,7 +98,7 @@ def calc_ch4_lifetime_fact(
     startyr = year[0]
     endyear = year[-1]
     filename_oh = oh_anomaly + "_CH4lifetime_" + oh_run + ".txt"
-    lifetime = pd.read_csv(path + filename_oh, delimiter=",", index_col=0)
+    lifetime = pd.read_csv(os.path.join(path, filename_oh), delimiter=",", index_col=0)
     lifetime = lifetime.loc[startyr:endyear]
     lifetime_ref = lifetime["Lifetime"].loc[anom_year]
     ch4lifetime_fact.loc[lifetime.index] = lifetime / lifetime_ref
