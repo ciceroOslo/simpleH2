@@ -10,7 +10,7 @@ scen_list = {'ssp119':'SSP1-1.9',
              'ssp245':'SSP2-4.5',
              'ssp370':'SSP3-7.0',
              'ssp370-lowNTCF':'SSP3-7.0 LowNTCF',
-             'ssp434':'SSP4.3.4',
+             'ssp434':'SSP4-3.4',
              'ssp460':'SSP4-6.0',
              'ssp534-over':'SSP5-3.4-over',
              'ssp585':'SSP5-8.5'}
@@ -18,7 +18,7 @@ scen_list = {'ssp119':'SSP1-1.9',
 scen_color = ['C0','C1','C2','C3','C4','C5','C6','C7','C8']
 
 startyr = 1850
-endyr = 2101
+endyr = 2100
 
 #Specify nitrate fixation:
 nit_fix = 9.0
@@ -32,7 +32,15 @@ pam_dict_osloctm ={"refyr": 2010,
                    "nit_fix": nit_fix}
 
 
+hydrogen_mass_field = pd.read_csv('../input/hydrogen_mass_ssps.csv',index_col=0)
+print(hydrogen_mass_field)
+
+leakrate = 0.1
+
 fig, axs = plt.subplots(nrows=2,ncols=2,sharex=False,sharey=False,squeeze=True,figsize=(12,10))
+
+
+
 
 lw = 1
 for sc,scen in enumerate(scen_list):
@@ -47,6 +55,7 @@ for sc,scen in enumerate(scen_list):
         
     antr_file = '../input/co_emis_'+scen+'.csv'
     ch4_file = '../input/ch4_conc_'+scen+'.csv'
+    #ch4_file = '../input/ch4_conc_'+'ssp434'+'.csv'
     bb_file = '../input/bb_emis_zero.csv'
     nmvoc_file = '../input/nmvoc_emis_'+scen+'.csv'
 
@@ -61,7 +70,16 @@ for sc,scen in enumerate(scen_list):
 
 
     sh2_1.scale_emissions_antr(31.58)
-
+    print(sh2_1.h2_prod_emis)
+    sh2_1.h2_prod_emis["h2_leak"] = 0.0
+    if(scen in hydrogen_mass_field.columns):
+        sh2_1.h2_prod_emis["h2_leak"].loc[hydrogen_mass_field.index] = hydrogen_mass_field[scen].multiply(leakrate)
+    else:
+        print('No H2 energy')
+        
+    print(sh2_1.h2_prod_emis)
+    
+    
     sh2_1.calculate_concentrations(const_oh=1,startyr=startyr,endyr=endyr)
     #iso1 = sh2.calc_isotope_timeseries()
     #iso2 = sh2_test_2.calc_isotope_timeseries(const_oh=1)
@@ -77,6 +95,7 @@ for sc,scen in enumerate(scen_list):
 
     tot_emis = (sh2_1.h2_prod_emis["h2_antr"].loc[startyr:endyr] +
                 sh2_1.h2_prod_emis["h2_bb_emis"].loc[startyr:endyr] +
+                sh2_1.h2_prod_emis["h2_leak"].loc[startyr:endyr] +
                 nit_fix)
     
     tot_atm_prod = (sh2_1.h2_prod_emis["h2_prod_ch4"].loc[startyr:endyr] +
@@ -85,6 +104,7 @@ for sc,scen in enumerate(scen_list):
     
     #Plot emissions
     axs[0,0].plot(sh2_1.h2_prod_emis["h2_antr"],'--', linewidth=lw,color=scen_color[sc])
+    axs[0,0].plot(sh2_1.h2_prod_emis["h2_leak"],'--', linewidth=lw,color=scen_color[sc])
     axs[0,0].plot(tot_emis,'-', linewidth=lw,color=scen_color[sc])
 
     #Plot production
