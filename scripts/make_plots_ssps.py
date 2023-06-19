@@ -15,7 +15,17 @@ scen_list = {'ssp119':'SSP1-1.9',
              'ssp534-over':'SSP5-3.4-over',
              'ssp585':'SSP5-8.5'}
 
-scen_color = ['C0','C1','C2','C3','C4','C5','C6','C7','C8']
+scens_colors = {'ssp119':"#1e9684", 
+                'ssp126':"#1d3354",
+                'ssp245':"#ead33d",
+                'ssp370':"#f21111",
+                'ssp370-lowNTCF':"pink",
+                'ssp434':"#63bde5", 
+                'ssp460':"#e88831", 
+                'ssp534-over':"#9a6dc9", 
+                'ssp585':"#840b12"}
+
+#scen_color = ['C0','C1','C2','C3','C4','C5','C6','C7','C8']
 
 startyr = 1850
 endyr = 2100
@@ -35,7 +45,7 @@ pam_dict_osloctm ={"refyr": 2010,
 hydrogen_mass_field = pd.read_csv('../input/hydrogen_mass_ssps.csv',index_col=0)
 print(hydrogen_mass_field)
 
-leakrate = 0.1
+leakrate = 0.0 #1
 
 fig, axs = plt.subplots(nrows=2,ncols=2,sharex=False,sharey=False,squeeze=True,figsize=(12,10))
 
@@ -54,8 +64,8 @@ for sc,scen in enumerate(scen_list):
         lw=1
         
     antr_file = '../input/co_emis_'+scen+'.csv'
-    ch4_file = '../input/ch4_conc_'+scen+'.csv'
-    #ch4_file = '../input/ch4_conc_'+'ssp434'+'.csv'
+    #ch4_file = '../input/ch4_conc_'+scen+'.csv'
+    ch4_file = '../input/ch4_conc_'+'ssp434'+'.csv'
     bb_file = '../input/bb_emis_zero.csv'
     nmvoc_file = '../input/nmvoc_emis_'+scen+'.csv'
 
@@ -103,20 +113,20 @@ for sc,scen in enumerate(scen_list):
                          
     
     #Plot emissions
-    axs[0,0].plot(sh2_1.h2_prod_emis["h2_antr"],'--', linewidth=lw,color=scen_color[sc])
-    axs[0,0].plot(sh2_1.h2_prod_emis["h2_leak"],'--', linewidth=lw,color=scen_color[sc])
-    axs[0,0].plot(tot_emis,'-', linewidth=lw,color=scen_color[sc])
+    axs[0,0].plot(sh2_1.h2_prod_emis["h2_antr"],'--', linewidth=lw,color=scens_colors[scen])
+    axs[0,0].plot(sh2_1.h2_prod_emis["h2_leak"],'--', linewidth=lw,color=scens_colors[scen])
+    axs[0,0].plot(tot_emis,'-', linewidth=lw,color=scens_colors[scen])
 
     #Plot production
-    axs[0,1].plot(sh2_1.h2_prod_emis["h2_prod_ch4"],'-', linewidth=lw,color=scen_color[sc])
-    axs[0,1].plot(sh2_1.h2_prod_emis["h2_prod_nmvoc"],'--', linewidth=lw,color=scen_color[sc])
+    axs[0,1].plot(sh2_1.h2_prod_emis["h2_prod_ch4"],'-', linewidth=lw,color=scens_colors[scen])
+    axs[0,1].plot(sh2_1.h2_prod_emis["h2_prod_nmvoc"],'--', linewidth=lw,color=scens_colors[scen])
 
     #Plot total production and emissions.
-    axs[1,0].plot(tot_prod,'-', linewidth=lw,color=scen_color[sc])
-    axs[1,0].plot(tot_atm_prod,'--', linewidth=lw,color=scen_color[sc])
+    axs[1,0].plot(tot_prod,'-', linewidth=lw,color=scens_colors[scen])
+    axs[1,0].plot(tot_atm_prod,'--', linewidth=lw,color=scens_colors[scen])
 
     #Plot concentrations
-    axs[1,1].plot(sh2_1.conc_h2,'-', linewidth=lw,label=scen_list[scen])
+    axs[1,1].plot(sh2_1.conc_h2,'-', linewidth=lw,color=scens_colors[scen],label=scen_list[scen])
 
 
 
