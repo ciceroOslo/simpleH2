@@ -332,7 +332,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         """
         iso_atm_timeseries = self.conc_h2.copy()
         iso_atm_timeseries.columns = ["iso_atmos"]
-        pam_dict = check_numeric_pamset(
+        iso_dict = check_numeric_pamset(
             {
                 "iso_h2_antr": 190,
                 "iso_h2_gfed": -290,
@@ -346,9 +346,9 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         )
         tot_prod = self.h2_prod_emis.loc[startyr : endyr + 1].sum(axis=1).values
         self.pam_dict["nit_fix"] = 5.0
-        frac_sink = 0.943 * self.pam_dict["tau_1"] / (
+        frac_sink = iso_dict["frac_soil"] * self.pam_dict["tau_1"] / (
             self.pam_dict["tau_1"] + self.pam_dict["tau_2"]
-        ) + 0.58 * self.pam_dict["tau_2"] / (
+        ) + iso_dict["frac_oh"] * self.pam_dict["tau_2"] / (
             self.pam_dict["tau_1"] + self.pam_dict["tau_2"]
         )
         if const_oh != 1:
@@ -356,32 +356,32 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         for i, y in enumerate(np.arange(startyr, endyr + 1)):
             emis = tot_prod[i] + self.pam_dict["nit_fix"]
             iso_sources = (
-                (pam_dict["iso_h2_antr"] * self.h2_prod_emis["h2_antr"].loc[y] / emis)
+                (iso_dict["iso_h2_antr"] * self.h2_prod_emis["h2_antr"].loc[y] / emis)
                 + (
-                    pam_dict["iso_h2_gfed"]
+                    iso_dict["iso_h2_gfed"]
                     * self.h2_prod_emis["h2_bb_emis"].loc[y]
                     / emis
                 )
                 + (
-                    pam_dict["iso_h2_prod_ch4"]
+                    iso_dict["iso_h2_prod_ch4"]
                     * self.h2_prod_emis["h2_prod_ch4"].loc[y]
                     / emis
                 )
                 + (
-                    pam_dict["iso_h2_prod_nmvoc"]
+                    iso_dict["iso_h2_prod_nmvoc"]
                     * self.h2_prod_emis["h2_prod_nmvoc"].loc[y]
                     / emis
                 )
-                + (pam_dict["iso_h2_nit_fix"] * self.pam_dict["nit_fix"] / emis)
+                + (iso_dict["iso_h2_nit_fix"] * self.pam_dict["nit_fix"] / emis)
             )
             if const_oh != 1:
                 tau_1_here = (
                     self.pam_dict["tau_1"] / ch4_lifetime_fact["lifetime_fact"].loc[y]
                 )
 
-                frac_sink = 0.943 * tau_1_here / (
+                frac_sink = iso_dict["frac_soil"] * tau_1_here / (
                     tau_1_here + self.pam_dict["tau_2"]
-                ) + 0.58 * self.pam_dict["tau_2"] / (
+                ) + iso_dict["frac_oh"] * self.pam_dict["tau_2"] / (
                     tau_1_here + self.pam_dict["tau_2"]
                 )
             iso_atm_timeseries.loc[y] = 1000 * (
