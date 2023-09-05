@@ -71,7 +71,7 @@ antr_file = '../input/h2_antr_ceds21.csv'
 ch4_file = '../input/ch4_historical.csv'
 bb_file = '../input/bb_emis_gfed.csv'
 nmvoc_file = '../input/nmvoc_emis_ssp245.csv'
-startyr = 1850
+startyr = 2000
 endyr = 2019
 
 
@@ -84,6 +84,8 @@ paths = {'meth_path': ch4_file,
 #Specify nitrate fixation:
 nit_fix = 9.0
 
+print(df_budget)
+
 beta_models = df_budget['H2 burden [Tg]']/df_surfconc
 
 fig, axs = plt.subplots(nrows=2,ncols=2,sharex=False,sharey=False,squeeze=True,figsize=(12,10))
@@ -91,7 +93,7 @@ fig, axs = plt.subplots(nrows=2,ncols=2,sharex=False,sharey=False,squeeze=True,f
 for m,model in enumerate(model_list):
     mcol = color_list[m]
     pam_dict ={"refyr": 2010,
-               "pre_ind_conc": 350.0,
+               "pre_ind_conc": 530.0,
                "prod_ref": df_budget.loc[model]['H2 atm prod [Tg/yr]'],
                "tau_2": df_budget.loc[model]['H2 soil sink lifetime [yrs]'],
                "tau_1": df_budget.loc[model]['H2 atm lifetime [yrs]'],
@@ -100,6 +102,12 @@ for m,model in enumerate(model_list):
                   
     sh2 = SIMPLEH2(pam_dict=pam_dict ,paths=paths)
     print(sh2.paths)
+
+    sh2.h2_prod_emis["h2_prod_ch4"] = sh2.h2_prod_emis["h2_prod_ch4"].loc[2010]
+    sh2.h2_prod_emis["h2_prod_nmvoc"] = sh2.h2_prod_emis["h2_prod_nmvoc"].loc[2010]
+    sh2.h2_prod_emis["h2_antr"] = sh2.h2_prod_emis["h2_antr"].loc[2010]
+    sh2.h2_prod_emis["h2_bb_emis"] = sh2.h2_prod_emis["h2_bb_emis"].loc[2010]
+    print(sh2.h2_prod_emis)
 
     #Scale only the anthropogenic emissions to match the estimated emissions in the models.
     sh2.scale_emissions_antr(df_budget.loc[model]['H2 estimated emissions [Tg/yr]'])
@@ -113,6 +121,8 @@ for m,model in enumerate(model_list):
     axs[1,0].plot([2010],df_budget.loc[model]['H2 estimated emissions [Tg/yr]'],'x', color=mcol)
     axs[0,1].plot([2010],df_budget.loc[model]['H2 atm prod [Tg/yr]'],'x', color=mcol)
     axs[1,1].plot([2010],df_surfconc.loc[model],'x',color=mcol)
+
+print(df_surfconc)
 
 axs[1,0].set_xlabel("Years")
 axs[1,1].set_xlabel("Years")
@@ -132,7 +142,7 @@ axs[1,1].set_title("H2 concentrations")
 axs[0,0].legend()
 axs[1,1].legend()
 
-xlim = [1850,2019]
+xlim = [1970,2019]
 axs[0,0].set_xlim(xlim)
 axs[1,0].set_xlim(xlim)
 axs[0,1].set_xlim(xlim)
@@ -141,6 +151,7 @@ axs[1,1].set_xlim(xlim)
 axs[0,0].set_ylim(bottom=0)
 axs[1,0].set_ylim(bottom=0)
 axs[0,1].set_ylim(bottom=0)
-axs[1,1].set_ylim(bottom=200)
+axs[1,1].set_ylim(bottom=400)
+axs[1,1].set_ylim([500,600])
 
 plt.show()

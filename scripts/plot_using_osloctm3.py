@@ -26,19 +26,6 @@ def read_model_results():
     df_budget = pd.read_csv(io.StringIO(s.decode('utf-8')),index_col=0)
     print(df_budget)
 
-    #and add UCI:
-    df_budget_uci = pd.DataFrame(index=['UCI'],columns=df_budget.columns)
-    df_budget_uci['H2 burden [Tg]'] = 183.6458 #181.708
-    df_budget_uci['H2 atm loss [Tg/yr]'] = 22.04 #21.547
-    df_budget_uci['H2 atm prod [Tg/yr]'] = 50.67 #51.601
-    df_budget_uci['H2 soil sink [Tg/yr]'] =  59.2 #59.2
-    df_budget_uci['H2 estimated emissions [Tg/yr]'] = df_budget_uci['H2 atm loss [Tg/yr]']+df_budget_uci['H2 soil sink [Tg/yr]']- df_budget_uci['H2 atm prod [Tg/yr]']
-    df_budget_uci['H2 atm lifetime [yrs]'] = df_budget_uci['H2 burden [Tg]']/df_budget_uci['H2 atm loss [Tg/yr]']
-    df_budget_uci['H2 soil sink lifetime [yrs]']= df_budget_uci['H2 burden [Tg]']/df_budget_uci['H2 soil sink [Tg/yr]']
-    df_budget_uci['H2 total lifetime [yrs]'] =df_budget_uci['H2 burden [Tg]'] /(df_budget_uci['H2 soil sink [Tg/yr]']+df_budget_uci['H2 atm loss [Tg/yr]'])
-    df_budget_uci    
-    
-    df_budget = pd.concat([df_budget,df_budget_uci])
     return df_budget
 
 def read_model_results_concentrations():
@@ -55,12 +42,30 @@ def read_model_results_concentrations():
 #Read model results to be used in the simple hydrogen model.    
 df_budget = read_model_results()
 print(df_budget)
+model = 'OSLOCTM3-emi'
+df_budget.loc[model]['H2 atm prod [Tg/yr]'] = 55.80309789
+df_budget.loc[model]['H2 soil sink lifetime [yrs]'] =3.526146997
+df_budget.loc[model]['H2 atm lifetime [yrs]'] = 7.014149379
+df_budget.loc[model]['H2 estimated emissions [Tg/yr]'] = 32.24252915
 
+df_budget_preind = df_budget.copy()
+df_budget_preind.loc[model]['H2 atm prod [Tg/yr]'] = 32.31030702
+df_budget_preind.loc[model]['H2 soil sink lifetime [yrs]'] =3.528483728
+df_budget_preind.loc[model]['H2 atm lifetime [yrs]'] = 6.990632131
+df_budget_preind.loc[model]['H2 estimated emissions [Tg/yr]'] = 20.8365481
+
+print(df_budget_preind)
+
+
+           
 color_list = ['C0','C1','C2','C3','C4','C5','C6','C7']
-model_list = df_budget.index
+model_list = ['OSLOCTM3-emi'] # df_budget.index
 
 df_surfconc = read_model_results_concentrations()
 print(df_surfconc)
+df_surfconc.loc[model] = 559.0
+df_surfconc_preind = df_surfconc.copy()
+df_surfconc_preind.loc[model] = 337.0
 
 
 #h2_file = '../input/h2_antr_ceds17.csv'
@@ -84,19 +89,33 @@ paths = {'meth_path': ch4_file,
 #Specify nitrate fixation:
 nit_fix = 9.0
 
+
 beta_models = df_budget['H2 burden [Tg]']/df_surfconc
+print(beta_models[model])
+
 
 fig, axs = plt.subplots(nrows=2,ncols=2,sharex=False,sharey=False,squeeze=True,figsize=(12,10))
 
+#
+#beta_h2 = 0.37
+#beta_h2 =  0.37 #5.1352e9 * 2.0 / 28.97 * 1e-9
+#beta_h2 = 5117248794.956313* 2.0 / 28.97 * 1e-9
+beta_h2 = beta_models[model]
+print(beta_h2)
+
+frac_voc_org = 18.0/41.1
+print(frac_voc_org)
+frac_voc_org_fabien = 0.297
 for m,model in enumerate(model_list):
     mcol = color_list[m]
     pam_dict ={"refyr": 2010,
-               "pre_ind_conc": 350.0,
+               "pre_ind_conc": 340.0,
                "prod_ref": df_budget.loc[model]['H2 atm prod [Tg/yr]'],
                "tau_2": df_budget.loc[model]['H2 soil sink lifetime [yrs]'],
                "tau_1": df_budget.loc[model]['H2 atm lifetime [yrs]'],
                "nit_fix": nit_fix,
-               "beta_h2": beta_models[model]}
+               "beta_h2": beta_h2,
+               "frac_voc_org":frac_voc_org}
                   
     sh2 = SIMPLEH2(pam_dict=pam_dict ,paths=paths)
     print(sh2.paths)
@@ -114,6 +133,33 @@ for m,model in enumerate(model_list):
     axs[0,1].plot([2010],df_budget.loc[model]['H2 atm prod [Tg/yr]'],'x', color=mcol)
     axs[1,1].plot([2010],df_surfconc.loc[model],'x',color=mcol)
 
+
+    axs[1,0].plot([1850],df_budget_preind.loc[model]['H2 estimated emissions [Tg/yr]'],'x', color=mcol)
+    axs[0,1].plot([1850],df_budget_preind.loc[model]['H2 atm prod [Tg/yr]'],'x', color=mcol)
+    axs[1,1].plot([1850],df_surfconc_preind.loc[model],'x',color=mcol)
+
+    mcol = color_list[m+1]
+    pam_dict ={"refyr": 2010,
+               "pre_ind_conc": 340.0,
+               "prod_ref": df_budget.loc[model]['H2 atm prod [Tg/yr]'],
+               "tau_2": df_budget.loc[model]['H2 soil sink lifetime [yrs]'],
+               "tau_1": df_budget.loc[model]['H2 atm lifetime [yrs]'],
+               "nit_fix": nit_fix,
+               "beta_h2": beta_h2,
+               "frac_voc_org":frac_voc_org_fabien}
+                  
+    sh2 = SIMPLEH2(pam_dict=pam_dict ,paths=paths)
+    print(sh2.paths)
+
+    #Scale only the anthropogenic emissions to match the estimated emissions in the models.
+    sh2.scale_emissions_antr(df_budget.loc[model]['H2 estimated emissions [Tg/yr]'])
+
+    #Calculate the H2 concentrations
+    sh2.calculate_concentrations(const_oh=1,startyr=startyr,endyr=endyr)
+
+    #Plot the results:
+    plot_results()
+    
 axs[1,0].set_xlabel("Years")
 axs[1,1].set_xlabel("Years")
 
