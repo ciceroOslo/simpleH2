@@ -15,7 +15,7 @@ def plot_results():
     
     axs[1,0].plot(sh2.h2_prod_emis["h2_antr"]
                   + sh2.h2_prod_emis["h2_bb_emis"]
-                  +nit_fix,'-', color=mcol, linewidth=1.5,label=model)
+                  +sh2.pam_dict["nit_fix"],'-', color=mcol, linewidth=1.5,label=model)
     
     axs[1,1].plot(sh2.conc_h2,'-', linewidth =1.5,color=mcol,label=model)
 
@@ -95,6 +95,7 @@ for m,model in enumerate(model_list):
                "prod_ref": df_budget.loc[model]['H2 atm prod [Tg/yr]'],
                "tau_2": df_budget.loc[model]['H2 soil sink lifetime [yrs]'],
                "tau_1": df_budget.loc[model]['H2 atm lifetime [yrs]'],
+               "scaling_co": 1.0, 
                "nit_fix": nit_fix,
                "beta_h2": beta_models[model]}
                   
@@ -102,7 +103,9 @@ for m,model in enumerate(model_list):
     print(sh2.paths)
 
     #Scale only the anthropogenic emissions to match the estimated emissions in the models.
-    sh2.scale_emissions_antr(df_budget.loc[model]['H2 estimated emissions [Tg/yr]'])
+    #sh2.scale_emissions_antr(df_budget.loc[model]['H2 estimated emissions [Tg/yr]'])
+    sh2.scale_emissions_nitrfix(df_budget.loc[model]['H2 estimated emissions [Tg/yr]'])
+    
 
     #Calculate the H2 concentrations
     sh2.calculate_concentrations(const_oh=1,startyr=startyr,endyr=endyr)

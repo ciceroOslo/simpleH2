@@ -257,6 +257,27 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
             * model_emis_antr
         )
 
+    def scale_emissions_nitrfix(self, tot_emis):
+        """
+        Scale emissions according to anthropogenic emissions
+
+        Parameters
+        ----------
+        tot_emis : float
+                   Total emissions to scale to
+        """
+        model_emis_nitr = (
+            tot_emis
+            - self.h2_prod_emis["h2_antr"].loc[self.pam_dict["refyr"]]
+            - self.h2_prod_emis["h2_bb_emis"].loc[self.pam_dict["refyr"]]
+        )
+        print(model_emis_nitr)
+        print(self.h2_prod_emis["h2_antr"].loc[self.pam_dict["refyr"]])
+        print(self.h2_prod_emis["h2_bb_emis"].loc[self.pam_dict["refyr"]])
+        print(tot_emis)
+
+        self.pam_dict["nit_fix"] = model_emis_nitr
+
     def calculate_concentrations(self, const_oh=0, startyr=1850, endyr=2014):
         """
         Calculate hydrogen concentrations
