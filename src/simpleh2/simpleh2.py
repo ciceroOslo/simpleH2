@@ -138,7 +138,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
          tau_1, reference year OH lifetime (7.2)
          tau_2, soil sink lifetime (2.4)
          refyr, reference year for calculations (2010)
-         beta_h2, convert mass to conc (0.37)  
+         beta_h2, convert mass to conc (0.37)
     conc_ch4 : Pandas.DataFrame
             Methane concentration data
     conc_h2 : Pandas.DataFrame
@@ -164,14 +164,14 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
                 "scaling_co": 0.34 * 2.0 / 28.0,
                 "natvoc": 600.0,
                 "beta_h2": 0.37,
-                "frac_voc_org":18.0/41.1,
+                "frac_voc_org": 18.0 / 41.1,
             },
             pam_dict,
         )
         if paths is None:
             paths = {}
         # frac numbers from Ehhalt and Roherer 2009
-        #frac_voc = 18.0 / 41.1 * self.pam_dict["prod_ref"]
+        # frac_voc = 18.0 / 41.1 * self.pam_dict["prod_ref"]
         frac_voc = self.pam_dict["frac_voc_org"] * self.pam_dict["prod_ref"]
         print(frac_voc)
         frac_ch4 = (1 - frac_voc / self.pam_dict["prod_ref"]) * self.pam_dict[
@@ -285,10 +285,10 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         # NBNB: Surface conc increased by 10%, burden H2 increased by 9.5%
         #
         # exit()
-        #beta_h2 =  0.37 #5.1352e9 * 2.0 / 28.97 * 1e-9  
-        #print(beta_h2)
-        #exit()
-        
+        # beta_h2 =  0.37 #5.1352e9 * 2.0 / 28.97 * 1e-9
+        # print(beta_h2)
+        # exit()
+
         if const_oh != 1:
             ch4_lifetime_fact = calc_ch4_lifetime_fact(np.arange(startyr, endyr + 1))
 
