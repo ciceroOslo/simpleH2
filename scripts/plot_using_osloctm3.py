@@ -41,20 +41,24 @@ def read_model_results_concentrations():
     
 #Read model results to be used in the simple hydrogen model.    
 df_budget = read_model_results()
-print(df_budget)
+
 model = 'OSLOCTM3-emi'
+df_budget.loc[model]['H2 burden [Tg]']= 204.6 
 df_budget.loc[model]['H2 atm prod [Tg/yr]'] = 55.80309789
 df_budget.loc[model]['H2 soil sink lifetime [yrs]'] =3.526146997
 df_budget.loc[model]['H2 atm lifetime [yrs]'] = 7.014149379
 df_budget.loc[model]['H2 estimated emissions [Tg/yr]'] = 32.24252915
+print(df_budget.loc['OSLOCTM3-emi'])
+
 
 df_budget_preind = df_budget.copy()
+df_budget_preind.loc[model]['H2 burden [Tg]']= 122.8
 df_budget_preind.loc[model]['H2 atm prod [Tg/yr]'] = 32.31030702
 df_budget_preind.loc[model]['H2 soil sink lifetime [yrs]'] =3.528483728
 df_budget_preind.loc[model]['H2 atm lifetime [yrs]'] = 6.990632131
 df_budget_preind.loc[model]['H2 estimated emissions [Tg/yr]'] = 20.8365481
 
-print(df_budget_preind)
+print(df_budget_preind.loc['OSLOCTM3-emi'])
 
 
            
@@ -115,7 +119,8 @@ for m,model in enumerate(model_list):
                "tau_1": df_budget.loc[model]['H2 atm lifetime [yrs]'],
                "nit_fix": nit_fix,
                "beta_h2": beta_h2,
-               "frac_voc_org":frac_voc_org}
+               "frac_voc_org":frac_voc_org,
+               "beta_h2": beta_models[model]}
                   
     sh2 = SIMPLEH2(pam_dict=pam_dict ,paths=paths)
     print(sh2.paths)
@@ -131,7 +136,7 @@ for m,model in enumerate(model_list):
     
     axs[1,0].plot([2010],df_budget.loc[model]['H2 estimated emissions [Tg/yr]'],'x', color=mcol)
     axs[0,1].plot([2010],df_budget.loc[model]['H2 atm prod [Tg/yr]'],'x', color=mcol)
-    axs[1,1].plot([2010],df_surfconc.loc[model],'x',color=mcol)
+    axs[1,1].plot([2010],df_surfconc.loc[model],'x',color=mcol, label='OsloCTM3 present day and pre ind')
 
 
     axs[1,0].plot([1850],df_budget_preind.loc[model]['H2 estimated emissions [Tg/yr]'],'x', color=mcol)
@@ -146,7 +151,8 @@ for m,model in enumerate(model_list):
                "tau_1": df_budget.loc[model]['H2 atm lifetime [yrs]'],
                "nit_fix": nit_fix,
                "beta_h2": beta_h2,
-               "frac_voc_org":frac_voc_org_fabien}
+               "frac_voc_org":frac_voc_org_fabien,
+               "beta_h2": beta_models[model]}
                   
     sh2 = SIMPLEH2(pam_dict=pam_dict ,paths=paths)
     print(sh2.paths)
