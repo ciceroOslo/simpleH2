@@ -271,7 +271,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
             - self.h2_prod_emis["h2_antr"].loc[self.pam_dict["refyr"]]
             - self.h2_prod_emis["h2_bb_emis"].loc[self.pam_dict["refyr"]]
         )
-        
+
         self.pam_dict["nit_fix"] = model_emis_nitr
 
     def calculate_concentrations(self, const_oh=0, startyr=1850, endyr=2014):
@@ -300,7 +300,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         # Atmospheric mass conversion H2  [Tg/ppb] (based on the perturbations)	0.352
         # (Burden H2/surface conc) Closer to the 0.344 Tg/ppb as Prather stated below.
         # NBNB: Surface conc increased by 10%, burden H2 increased by 9.5%
-        
+
         if const_oh != 1:
             ch4_lifetime_fact = calc_ch4_lifetime_fact(np.arange(startyr, endyr + 1))
 
