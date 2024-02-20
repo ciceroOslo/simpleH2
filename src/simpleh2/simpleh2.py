@@ -138,7 +138,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
          tau_1, reference year OH lifetime (7.2)
          tau_2, soil sink lifetime (2.4)
          refyr, reference year for calculations (2010)
-         beta_h2, convert mass to conc (0.37)
+         beta_h2, convert mass to conc (0.37) (5.1352e9 * 2.0 / 28.97 * 1e-9)
     conc_ch4 : Pandas.DataFrame
             Methane concentration data
     conc_h2 : Pandas.DataFrame
@@ -271,11 +271,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
             - self.h2_prod_emis["h2_antr"].loc[self.pam_dict["refyr"]]
             - self.h2_prod_emis["h2_bb_emis"].loc[self.pam_dict["refyr"]]
         )
-        print(model_emis_nitr)
-        print(self.h2_prod_emis["h2_antr"].loc[self.pam_dict["refyr"]])
-        print(self.h2_prod_emis["h2_bb_emis"].loc[self.pam_dict["refyr"]])
-        print(tot_emis)
-
+        
         self.pam_dict["nit_fix"] = model_emis_nitr
 
     def calculate_concentrations(self, const_oh=0, startyr=1850, endyr=2014):
@@ -304,12 +300,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         # Atmospheric mass conversion H2  [Tg/ppb] (based on the perturbations)	0.352
         # (Burden H2/surface conc) Closer to the 0.344 Tg/ppb as Prather stated below.
         # NBNB: Surface conc increased by 10%, burden H2 increased by 9.5%
-        #
-        # exit()
-        # beta_h2 =  0.37 #5.1352e9 * 2.0 / 28.97 * 1e-9
-        # print(beta_h2)
-        # exit()
-
+        
         if const_oh != 1:
             ch4_lifetime_fact = calc_ch4_lifetime_fact(np.arange(startyr, endyr + 1))
 
