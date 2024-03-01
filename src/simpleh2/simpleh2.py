@@ -104,7 +104,7 @@ def calc_ch4_lifetime_fact(
     ch4lifetime_fact.loc[lifetime.index] = lifetime / lifetime_ref
 
     return ch4lifetime_fact
-
+    
 
 def calc_h2_bb_emis(bb_emis_file):
     """
@@ -150,6 +150,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
             or emissions resulting from nmvoc or methane photooxidation
             or anthropogenic or biomass burning related hydrogen emissions
             (scaled from CO), respectively
+    ch4_lifetime_emis : Pandas.DataFrame
     """
 
     def __init__(self, pam_dict=None, paths=None):
@@ -193,6 +194,20 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
 
         self.h2_prod_emis["h2_bb_emis"] = calc_h2_bb_emis(self.paths.bb_file)
 
+    def calc_ch4_lifetime_tar(
+        self, 
+        year,
+        anom_year=2000,
+    ):
+        dln_oh = (
+                -0.32 * (np.log(self.conc_ch4.loc[year]) - np.log(1751.0))
+                + 0.0042 * (self.ch4_lifetime_emis["NOX"][yr] - self.ch4_lifetime_emis["NOX"][anom_year])
+                - 0.000105 * (self.ch4_lifetime_emis["CO"][yr] - self.ch4_lifetime_emis["CO"][anom_year])
+                - 0.000315 * (self.ch4_lifetime_emis["NMVOC"][yr] - self.ch4_lifetime_emis["NMVOC"][anom_year])
+            )
+        q = q * (dln_oh + 1)
+        return q
+
     def _prepare_concentrations(self):
         data_conc = pd.read_csv(self.paths.meth_path, index_col=0)
         data_conc.index.name = "Year"
@@ -204,6 +219,10 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
 
         self.conc_h2.columns = ["H2"]
         self.conc_h2["H2"] = -1
+    
+    def get_emissions_data_from_nmvoc_path(self, species):
+        path = self.paths.nmvoc_path.replace("nmvoc", species.lower())
+        return pd.read_csv(path, index_col=0)
 
     def _initialise_emis_with_nmvoc(self, frac_voc):
         # Natural emis NMVOC:
@@ -214,8 +233,8 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         # frac_voc_used = 115.23 / 150.3
         # nat_emis = 648.87 - 10.77 * frac_voc_used  # Used in the model
 
-        nmvoc_emis = (
-            pd.read_csv(self.paths.nmvoc_path, index_col=0) + self.pam_dict["natvoc"]
+        nmvoc_emis = (self.get_emissions_data_from_nmvoc_path("NMVOC")
+             + self.pam_dict["natvoc"]
         )
 
         # nmvoc_emis = nmvoc_emis * frac_voc_used
@@ -229,6 +248,13 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         )
         self.h2_prod_emis.index.name = "Year"
         self.h2_prod_emis = self.h2_prod_emis.rename(columns={"Emis": "h2_prod_nmvoc"})
+
+    def _initialise_emis_for_lifetime(self):
+        self.ch4_lifetime_emis = self.get_emissions_data_from_nmvoc_path("NMVOC")
+        self.ch4_lifetime_emis.index.name = "Year"
+        self.ch4_lifetime_emis = self.ch4_lifetime_emis.rename(columns={"Emis": "NMVOC"})
+        self.ch4_lifetime_emis["CO"] = self.get_emissions_data_from_nmvoc_path("CO")
+        self.ch4_lifetime_emis["NOX"] = self.get_emissions_data_from_nmvoc_path("NOX")
 
     def _calc_h2_antr(self):
         h2_antr = (
