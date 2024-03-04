@@ -79,7 +79,8 @@ plot_results()
 
 sh2_1.calculate_concentrations(const_oh=1,startyr=startyr,endyr=endyr)
 axs[1,1].plot(sh2_1.conc_h2,'--', linewidth=1,label='const_oh=1')
-
+sh2_1.calculate_concentrations(const_oh=2,startyr=startyr,endyr=endyr)
+axs[1,1].plot(sh2_1.conc_h2,'--', linewidth=1,label='TAR-OH')
 
 print(sh2_1.conc_h2)
 
