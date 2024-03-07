@@ -270,6 +270,9 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         """
         path = self.paths.nmvoc_path.replace("nmvoc", species.lower())
         if not burn:
+            # if "ssp" in self.paths.meth_path:
+            #    print("here")
+            #    path = self.paths.meth_path.replace("ch4", species.lower()).replace("conc", "emis")
             path = path.replace("emis", "emis_noburn")
         return pd.read_csv(path, index_col=0)
 
@@ -314,9 +317,13 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         )
 
     def _calc_h2_antr(self):
-        h2_antr = (
-            pd.read_csv(self.paths.antr_file, index_col=0) * self.pam_dict["scaling_co"]
-        )
+        if self.paths.antr_file.split("/")[-1].startswith("h2"):
+            h2_antr = pd.read_csv(self.paths.antr_file, index_col=0)
+        else:
+            h2_antr = (
+                pd.read_csv(self.paths.antr_file, index_col=0)
+                * self.pam_dict["scaling_co"]
+            )
         self.h2_prod_emis["h2_antr"] = h2_antr["Emis"]
 
     def scale_emissions_antr(self, tot_emis):
@@ -364,8 +371,10 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         ----------
         const_oh : float
                   If the value of this is 1, oh will be assumed constant
-                  otherwise oh-concentrations will be calculated based on
-                  methane concentraions, to give a varrying OH-sink lifetime
+                  otherwise if it is 0 oh-concentrations will be calculated based on
+                  methane concentrations, or if it's value is somethin else
+                  it will use a TAR scheme to calculate a varrying OH-sink lifetime
+                  depending on both methane concentrations, and CO, NOx and VOC emissions
         startyr : int
                   Startyear for concentrations calculations
         endyr : int
@@ -383,12 +392,15 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         # NBNB: Surface conc increased by 10%, burden H2 increased by 9.5%
 
         if const_oh == 0:
+            print("ch4 from methane")
             ch4_lifetime_fact = calc_ch4_lifetime_fact(np.arange(startyr, endyr + 1))
         elif const_oh != 1:
+            print("ch4 from tar")
             ch4_lifetime_fact = self.calc_ch4_lifetime_tar(
                 np.arange(startyr, endyr + 1)
             )
         else:
+            print("oh constant")
             q = 1.0 / self.pam_dict["tau_1"] + 1 / self.pam_dict["tau_2"]
         conc_local = self.pam_dict["pre_ind_conc"]
         for i, y in enumerate(np.arange(startyr, endyr + 1)):
