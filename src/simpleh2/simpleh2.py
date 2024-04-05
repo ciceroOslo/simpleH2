@@ -371,8 +371,8 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         ----------
         const_oh : float
                   If the value of this is 1, oh will be assumed constant
-                  otherwise if it is 0 oh-concentrations will be calculated based on
-                  methane concentrations, or if it's value is somethin else
+                  if it is 0 oh-concentrations are taken from 
+                  precalculated OH changes, or if its value is something else
                   it will use a TAR scheme to calculate a varrying OH-sink lifetime
                   depending on both methane concentrations, and CO, NOx and VOC emissions
         startyr : int
