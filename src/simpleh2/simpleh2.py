@@ -269,7 +269,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
             pd.DataFrame
         """
         path = self.paths.nmvoc_path.replace("nmvoc", species.lower())
-        if not burn:
+        if not burn and "ceds" not in path:
             # if "ssp" in self.paths.meth_path:
             #    print("here")
             #    path = self.paths.meth_path.replace("ch4", species.lower()).replace("conc", "emis")
