@@ -446,9 +446,10 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         """
         iso_atm_timeseries = self.conc_h2.copy()
         iso_atm_timeseries.columns = ["iso_atmos"]
+        #Srinath Changed iso_h2_antr to -190
         iso_dict = check_numeric_pamset(
             {
-                "iso_h2_antr": 190,
+                "iso_h2_antr": -190,
                 "iso_h2_gfed": -290,
                 "iso_h2_prod_ch4": 160,
                 "iso_h2_prod_nmvoc": 160,
@@ -459,7 +460,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
             parameter_dict,
         )
         tot_prod = self.h2_prod_emis.loc[startyr : endyr + 1].sum(axis=1).values
-        self.pam_dict["nit_fix"] = 5.0
+        #self.pam_dict["nit_fix"] = 5.0
         frac_sink = iso_dict["frac_soil"] * self.pam_dict["tau_1"] / (
             self.pam_dict["tau_1"] + self.pam_dict["tau_2"]
         ) + iso_dict["frac_oh"] * self.pam_dict["tau_2"] / (
