@@ -1,6 +1,7 @@
 """
 SIMPLEH2
 """
+
 import logging
 import os
 from dataclasses import dataclass
@@ -150,6 +151,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
             or emissions resulting from nmvoc or methane photooxidation
             or anthropogenic or biomass burning related hydrogen emissions
             (scaled from CO), respectively
+    ch4_lifetime_emis : Pandas.DataFrame
     """
 
     def __init__(self, pam_dict=None, paths=None):
@@ -173,7 +175,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         # frac numbers from Ehhalt and Roherer 2009
         # frac_voc = 18.0 / 41.1 * self.pam_dict["prod_ref"]
         frac_voc = self.pam_dict["frac_voc_org"] * self.pam_dict["prod_ref"]
-        print(frac_voc)
+
         frac_ch4 = (1 - frac_voc / self.pam_dict["prod_ref"]) * self.pam_dict[
             "prod_ref"
         ]
@@ -184,6 +186,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         self._prepare_concentrations()
 
         self._initialise_emis_with_nmvoc(frac_voc=frac_voc)
+        self._initialise_emis_for_lifetime()
 
         self.h2_prod_emis["h2_prod_ch4"] = (
             self.conc_ch4 / self.conc_ch4.loc[self.pam_dict["refyr"]] * frac_ch4
@@ -192,6 +195,51 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         self._calc_h2_antr()
 
         self.h2_prod_emis["h2_bb_emis"] = calc_h2_bb_emis(self.paths.bb_file)
+
+    def calc_ch4_lifetime_tar(
+        self,
+        year,
+        anom_year=2000,
+    ):
+        """
+        Calculate methane lifetime factor using TAR formula for timeseries of years
+
+        Parameters
+        ----------
+        year : np.ndarray
+           Array with years
+        anom_year : int
+           Anomaly/ reference year, default 2000
+        Returns
+        -------
+        pd.DataFrame
+             Ratio of methane lifetime to methane lifetime in
+            anomaly/reference year
+        """
+        lifetime_fact = np.ones(year.size)
+        ch4lifetime_fact = pd.DataFrame({"lifetime_fact": lifetime_fact}, index=year)
+        for yr in year:
+
+            dln_oh = (
+                -0.32 * (np.log(self.conc_ch4["CH4"][yr]) - np.log(1751.0))
+                + 0.0042
+                * (
+                    self.ch4_lifetime_emis["NOX"][yr]
+                    - self.ch4_lifetime_emis["NOX"][anom_year]
+                )
+                - 0.000105
+                * (
+                    self.ch4_lifetime_emis["CO"][yr]
+                    - self.ch4_lifetime_emis["CO"][anom_year]
+                )
+                - 0.000315
+                * (
+                    self.ch4_lifetime_emis["NMVOC"][yr]
+                    - self.ch4_lifetime_emis["NMVOC"][anom_year]
+                )
+            )
+            ch4lifetime_fact.loc[yr] = 1 / (dln_oh + 1)
+        return ch4lifetime_fact
 
     def _prepare_concentrations(self):
         data_conc = pd.read_csv(self.paths.meth_path, index_col=0)
@@ -205,6 +253,29 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         self.conc_h2.columns = ["H2"]
         self.conc_h2["H2"] = -1
 
+    def get_emissions_data_from_nmvoc_path(self, species, burn=True):
+        """
+        Get emissions from files specified in nmvoc path
+
+        Parameters
+        ----------
+        species : str
+            Name of species for which to find data
+        burn : bool
+            Whether or not to use emissions including biomass burning
+
+        Returns
+        -------
+            pd.DataFrame
+        """
+        path = self.paths.nmvoc_path.replace("nmvoc", species.lower())
+        if not burn and "ceds" not in path:
+            # if "ssp" in self.paths.meth_path:
+            #    print("here")
+            #    path = self.paths.meth_path.replace("ch4", species.lower()).replace("conc", "emis")
+            path = path.replace("emis", "emis_noburn")
+        return pd.read_csv(path, index_col=0)
+
     def _initialise_emis_with_nmvoc(self, frac_voc):
         # Natural emis NMVOC:
         # Sum NMVOC used in the model 2010 and 1850.
@@ -215,7 +286,7 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         # nat_emis = 648.87 - 10.77 * frac_voc_used  # Used in the model
 
         nmvoc_emis = (
-            pd.read_csv(self.paths.nmvoc_path, index_col=0) + self.pam_dict["natvoc"]
+            self.get_emissions_data_from_nmvoc_path("VOC") + self.pam_dict["natvoc"]
         )
 
         # nmvoc_emis = nmvoc_emis * frac_voc_used
@@ -230,10 +301,29 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         self.h2_prod_emis.index.name = "Year"
         self.h2_prod_emis = self.h2_prod_emis.rename(columns={"Emis": "h2_prod_nmvoc"})
 
-    def _calc_h2_antr(self):
-        h2_antr = (
-            pd.read_csv(self.paths.antr_file, index_col=0) * self.pam_dict["scaling_co"]
+    def _initialise_emis_for_lifetime(self):
+        self.ch4_lifetime_emis = self.get_emissions_data_from_nmvoc_path(
+            "VOC", burn=False
         )
+        self.ch4_lifetime_emis.index.name = "Year"
+        self.ch4_lifetime_emis = self.ch4_lifetime_emis.rename(
+            columns={"Emis": "NMVOC"}
+        )
+        self.ch4_lifetime_emis["CO"] = self.get_emissions_data_from_nmvoc_path(
+            "CO", burn=False
+        )
+        self.ch4_lifetime_emis["NOX"] = self.get_emissions_data_from_nmvoc_path(
+            "NOX", burn=False
+        )
+
+    def _calc_h2_antr(self):
+        if self.paths.antr_file.split("/")[-1].startswith("h2"):
+            h2_antr = pd.read_csv(self.paths.antr_file, index_col=0)
+        else:
+            h2_antr = (
+                pd.read_csv(self.paths.antr_file, index_col=0)
+                * self.pam_dict["scaling_co"]
+            )
         self.h2_prod_emis["h2_antr"] = h2_antr["Emis"]
 
     def scale_emissions_antr(self, tot_emis):
@@ -250,7 +340,6 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
             - self.pam_dict["nit_fix"]
             - self.h2_prod_emis["h2_bb_emis"].loc[self.pam_dict["refyr"]]
         )
-        print(model_emis_antr)
         self.h2_prod_emis["h2_antr"] = (
             self.h2_prod_emis["h2_antr"]
             / self.h2_prod_emis["h2_antr"].loc[self.pam_dict["refyr"]]
@@ -282,8 +371,10 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         ----------
         const_oh : float
                   If the value of this is 1, oh will be assumed constant
-                  otherwise oh-concentrations will be calculated based on
-                  methane concentraions, to give a varrying OH-sink lifetime
+                  if it is 0 oh-concentrations are taken from
+                  precalculated OH changes, or if its value is something else
+                  it will use a TAR scheme to calculate a varrying OH-sink lifetime
+                  depending on both methane concentrations, and CO, NOx and VOC emissions
         startyr : int
                   Startyear for concentrations calculations
         endyr : int
@@ -291,7 +382,6 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
 
         """
         tot_prod = self.h2_prod_emis.loc[startyr : endyr + 1].sum(axis=1).values
-        print(self.pam_dict)  # = 9.0
 
         # Factor converting emissions to mixing ratios (Tg CH4/ppbv)
 
@@ -301,10 +391,16 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         # (Burden H2/surface conc) Closer to the 0.344 Tg/ppb as Prather stated below.
         # NBNB: Surface conc increased by 10%, burden H2 increased by 9.5%
 
-        if const_oh != 1:
+        if const_oh == 0:
+            print("ch4 from methane")
             ch4_lifetime_fact = calc_ch4_lifetime_fact(np.arange(startyr, endyr + 1))
-
+        elif const_oh != 1:
+            print("ch4 from tar")
+            ch4_lifetime_fact = self.calc_ch4_lifetime_tar(
+                np.arange(startyr, endyr + 1)
+            )
         else:
+            print("oh constant")
             q = 1.0 / self.pam_dict["tau_1"] + 1 / self.pam_dict["tau_2"]
         conc_local = self.pam_dict["pre_ind_conc"]
         for i, y in enumerate(np.arange(startyr, endyr + 1)):
@@ -350,9 +446,10 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
         """
         iso_atm_timeseries = self.conc_h2.copy()
         iso_atm_timeseries.columns = ["iso_atmos"]
-        pam_dict = check_numeric_pamset(
+        #Srinath Changed iso_h2_antr to -190
+        iso_dict = check_numeric_pamset(
             {
-                "iso_h2_antr": 190,
+                "iso_h2_antr": -190,
                 "iso_h2_gfed": -290,
                 "iso_h2_prod_ch4": 160,
                 "iso_h2_prod_nmvoc": 160,
@@ -363,43 +460,47 @@ class SIMPLEH2:  # pylint: disable=too-many-instance-attributes
             parameter_dict,
         )
         tot_prod = self.h2_prod_emis.loc[startyr : endyr + 1].sum(axis=1).values
-        self.pam_dict["nit_fix"] = 5.0
-        frac_sink = 0.943 * self.pam_dict["tau_1"] / (
+        #self.pam_dict["nit_fix"] = 5.0
+        frac_sink = iso_dict["frac_soil"] * self.pam_dict["tau_1"] / (
             self.pam_dict["tau_1"] + self.pam_dict["tau_2"]
-        ) + 0.58 * self.pam_dict["tau_2"] / (
+        ) + iso_dict["frac_oh"] * self.pam_dict["tau_2"] / (
             self.pam_dict["tau_1"] + self.pam_dict["tau_2"]
         )
-        if const_oh != 1:
+        if const_oh == 0:
             ch4_lifetime_fact = calc_ch4_lifetime_fact(np.arange(startyr, endyr + 1))
+        elif const_oh != 1:
+            ch4_lifetime_fact = self.calc_ch4_lifetime_tar(
+                np.arange(startyr, endyr + 1)
+            )
         for i, y in enumerate(np.arange(startyr, endyr + 1)):
             emis = tot_prod[i] + self.pam_dict["nit_fix"]
             iso_sources = (
-                (pam_dict["iso_h2_antr"] * self.h2_prod_emis["h2_antr"].loc[y] / emis)
+                (iso_dict["iso_h2_antr"] * self.h2_prod_emis["h2_antr"].loc[y] / emis)
                 + (
-                    pam_dict["iso_h2_gfed"]
+                    iso_dict["iso_h2_gfed"]
                     * self.h2_prod_emis["h2_bb_emis"].loc[y]
                     / emis
                 )
                 + (
-                    pam_dict["iso_h2_prod_ch4"]
+                    iso_dict["iso_h2_prod_ch4"]
                     * self.h2_prod_emis["h2_prod_ch4"].loc[y]
                     / emis
                 )
                 + (
-                    pam_dict["iso_h2_prod_nmvoc"]
+                    iso_dict["iso_h2_prod_nmvoc"]
                     * self.h2_prod_emis["h2_prod_nmvoc"].loc[y]
                     / emis
                 )
-                + (pam_dict["iso_h2_nit_fix"] * self.pam_dict["nit_fix"] / emis)
+                + (iso_dict["iso_h2_nit_fix"] * self.pam_dict["nit_fix"] / emis)
             )
             if const_oh != 1:
                 tau_1_here = (
                     self.pam_dict["tau_1"] / ch4_lifetime_fact["lifetime_fact"].loc[y]
                 )
 
-                frac_sink = 0.943 * tau_1_here / (
+                frac_sink = iso_dict["frac_soil"] * tau_1_here / (
                     tau_1_here + self.pam_dict["tau_2"]
-                ) + 0.58 * self.pam_dict["tau_2"] / (
+                ) + iso_dict["frac_oh"] * self.pam_dict["tau_2"] / (
                     tau_1_here + self.pam_dict["tau_2"]
                 )
             iso_atm_timeseries.loc[y] = 1000 * (

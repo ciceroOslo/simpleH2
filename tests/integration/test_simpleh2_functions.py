@@ -8,7 +8,7 @@ from simpleh2 import SIMPLEH2
 
 def test_simpleh2_functions():
     sh2 = SIMPLEH2()
-    assert type(sh2.conc_h2) == pd.DataFrame
+    assert isinstance(sh2.conc_h2, pd.DataFrame)
     assert len(sh2.conc_h2) == len(range(1700, 2023))
     assert sh2.conc_h2["H2"][1852] == -1
 
@@ -17,6 +17,7 @@ def test_simpleh2_functions():
     sh2_old = sh2.conc_h2["H2"][1852]
     print(sh2_old)
     assert sh2_old > 240
+    print(f"sh2_old is {sh2_old}")
     # assert np.allclose(sh2.conc_h2["H2"][1852], 335.141493)
 
     sh2_test_2 = SIMPLEH2(
@@ -38,4 +39,17 @@ def test_simpleh2_functions():
 
     sh2.scale_emissions_antr(31.58)
     sh2.calculate_concentrations()
-    assert sh2.conc_h2["H2"][1852] != sh2_old
+    sh2_2_old = sh2.conc_h2["H2"][1852]
+    assert sh2_test_2.conc_h2["H2"][1852] != sh2_2_old
+    print(f"sh2_test_2 in 1852 is: {sh2_test_2.conc_h2['H2'][1852]}")
+    print(f"sh2_old updated is {sh2_2_old}")
+    sh2_test3 = SIMPLEH2()
+    sh2_test3.calculate_concentrations(const_oh=2)
+    print(f"sh2_test_3 in 1852 is: {sh2_test3.conc_h2['H2'][1852]}")
+    assert sh2_test3.conc_h2["H2"][1852] != sh2_old
+    assert sh2_test3.conc_h2["H2"][1852] != sh2_2_old
+
+    iso3 = sh2_test3.calc_isotope_timeseries()
+    assert iso3.columns == iso2.columns
+    assert len(iso1["iso_atmos"]) == len(iso3["iso_atmos"])
+    assert not any(np.isnan(iso3["iso_atmos"].values))

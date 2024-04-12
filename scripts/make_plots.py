@@ -1,5 +1,4 @@
-import pandas as pd
-import numpy as np
+import os
 import matplotlib.pyplot as plt
 
 from simpleh2 import SIMPLEH2
@@ -12,7 +11,9 @@ print(sh2.conc_ch4.head)
 sh2.calculate_concentrations()
 
 
-sh2_test_2 = SIMPLEH2(pam_dict={"refyr": "lastyear", "nit_fix": 4.5}, ceds21=False)
+sh2_test_2 = SIMPLEH2(pam_dict={"refyr": "lastyear", "nit_fix": 4.5}, paths={"antr_file": os.path.join(
+        os.path.dirname(__file__), "..", "input", "h2_antr_ceds21.csv"
+    )})
 sh2_test_2.calculate_concentrations(const_oh=1)
 iso1 = sh2.calc_isotope_timeseries()
 iso2 = sh2_test_2.calc_isotope_timeseries(const_oh=1)
