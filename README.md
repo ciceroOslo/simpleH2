@@ -18,3 +18,7 @@ Choose to run with **ceds21** as True or False, and modify file paths in the **p
 * co_file2: CEDS 2021 CO-file used when ceds 2021 is not used
 
 In the run to calculate concentrations or isotope value, you can choose to run with **const_oh** = 1 and a constant value, or a varrying oh-value by setting this parameter to zero (this is also the default behaviour). If oh is changing it will be read from the **path_oh** parameter path
+
+Branch updates
+Multiple year runs are run using the simpleH2 class module.
+Single year runs are run using the conc_calc and iso_calc functions. These contain the geological terms, absent in the simpleH2 class. These will be merged.
